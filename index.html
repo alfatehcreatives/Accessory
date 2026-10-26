@@ -1038,7 +1038,7 @@
 
       let optionsHTML = '<option value="All">All Categories</option>';
       state.categories.forEach(c => {
-        optionsHTML += `<option value="${c}">${c}</option>`;
+        optionsHTML += `<option value="{c}">{c}</option>`;
       });
 
       regCat.innerHTML = optionsHTML;
@@ -1046,7 +1046,7 @@
 
       let modalOptionsHTML = '';
       state.categories.forEach(c => {
-        modalOptionsHTML += `<option value="${c}">${c}</option>`;
+        modalOptionsHTML += `<option value="{c}">{c}</option>`;
       });
       modCat.innerHTML = modalOptionsHTML;
     }
@@ -1080,26 +1080,26 @@
 
       items.forEach(item => {
         const card = document.createElement('div');
-        card.className = `panel-card border border-theme rounded-2xl p-3 flex flex-col justify-between cursor-pointer hover:border-black transition-all group ${item.stock <= 0 ? 'opacity-50' : ''}`;
+        card.className = `panel-card border border-theme rounded-2xl p-3 flex flex-col justify-between cursor-pointer hover:border-black transition-all group {item.stock <= 0 ? 'opacity-50' : ''}`;
         card.onclick = () => addToCart(item);
 
-        const minPriceText = item.minPrice ? `<span class="text-[9px] text-muted block">Min: $${parseFloat(item.minPrice).toFixed(2)}</span>` : '';
-        const locationBadge = item.location ? `<span class="text-[9px] text-muted bg-zinc-200 px-1.5 py-0.5 rounded font-mono block mt-1 truncate">📍 ${item.location}</span>` : '';
+        const minPriceText = item.minPrice ? `<span class="text-[9px] text-muted block">Min: {parseFloat(item.minPrice).toFixed(2)}</span>` : '';
+        const locationBadge = item.location ? `<span class="text-[9px] text-muted bg-zinc-200 px-1.5 py-0.5 rounded font-mono block mt-1 truncate">📍 {item.location}</span>` : '';
 
         card.innerHTML = `
           <div>
             <div class="flex justify-between items-start gap-1">
-              <span class="font-extrabold text-xs text-black group-hover:text-black line-clamp-2">${item.name}</span>
+              <span class="font-extrabold text-xs text-black group-hover:text-black line-clamp-2">{item.name}</span>
             </div>
-            ${item.altNames ? `<span class="text-[9px] text-muted block truncate">${item.altNames}</span>` : ''}
-            ${locationBadge}
+            {item.altNames ? `<span class="text-[9px] text-muted block truncate">{item.altNames}</span>` : ''}
+            {locationBadge}
           </div>
           <div class="mt-3 pt-2 border-t border-theme flex flex-col gap-0.5">
             <div class="flex justify-between items-center">
-              <span class="text-[10px] font-mono font-bold text-muted">${item.stock} in stock</span>
-              <span class="font-black font-mono text-xs text-black">$${parseFloat(item.price).toFixed(2)}</span>
+              <span class="text-[10px] font-mono font-bold text-muted">{item.stock} in stock</span>
+              <span class="font-black font-mono text-xs text-black">{parseFloat(item.price).toFixed(2)}</span>
             </div>
-            ${minPriceText}
+            {minPriceText}
           </div>
         `;
         container.appendChild(card);
@@ -1163,34 +1163,34 @@
         row.className = 'panel-card border border-theme rounded-xl p-3 flex flex-col gap-2';
 
         const minWarning = (cItem.minPrice && cItem.customPrice < cItem.minPrice) 
-          ? `<span class="text-[9px] text-vibrantRed font-bold block">Below Min Price ($${cItem.minPrice.toFixed(2)})!</span>` 
+          ? `<span class="text-[9px] text-vibrantRed font-bold block">Below Min Price ({cItem.minPrice.toFixed(2)})!</span>` 
           : '';
 
         row.innerHTML = `
           <div class="flex justify-between items-start">
-            <span class="font-bold text-xs text-black">${cItem.name}</span>
-            <button onclick="removeFromCart(${index})" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            <span class="font-bold text-xs text-black">{cItem.name}</span>
+            <button onclick="removeFromCart({index})" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
           </div>
           <div class="flex justify-between items-center gap-2">
             <div class="flex items-center gap-1.5 bg-zinc-100 border border-theme rounded-lg p-1">
-              <span class="text-[10px] font-bold text-muted px-1">Bargain Price: $</span>
-              <input type="number" step="0.01" value="${cItem.customPrice}" onchange="updateCartPrice(${index}, this.value)" class="w-16 bg-white border border-theme rounded px-1.5 py-0.5 text-xs font-mono font-bold text-black focus:outline-none"/>
+              <span class="text-[10px] font-bold text-muted px-1">Bargain Price: </span>
+              <input type="number" step="0.01" value="{cItem.customPrice}" onchange="updateCartPrice({index}, this.value)" class="w-16 bg-white border border-theme rounded px-1.5 py-0.5 text-xs font-mono font-bold text-black focus:outline-none"/>
             </div>
             <div class="flex items-center gap-1">
-              <button onclick="updateCartQty(${index}, -1)" class="w-6 h-6 bg-zinc-200 hover:bg-zinc-300 text-black font-bold rounded flex items-center justify-center text-xs">-</button>
-              <span class="w-6 text-center font-mono font-bold text-xs">${cItem.qty}</span>
-              <button onclick="updateCartQty(${index}, 1)" class="w-6 h-6 bg-zinc-200 hover:bg-zinc-300 text-black font-bold rounded flex items-center justify-center text-xs">+</button>
+              <button onclick="updateCartQty({index}, -1)" class="w-6 h-6 bg-zinc-200 hover:bg-zinc-300 text-black font-bold rounded flex items-center justify-center text-xs">-</button>
+              <span class="w-6 text-center font-mono font-bold text-xs">{cItem.qty}</span>
+              <button onclick="updateCartQty({index}, 1)" class="w-6 h-6 bg-zinc-200 hover:bg-zinc-300 text-black font-bold rounded flex items-center justify-center text-xs">+</button>
             </div>
           </div>
-          ${minWarning}
+          {minWarning}
           <div class="text-right border-t border-theme pt-1 text-[11px] font-mono font-bold text-black">
-            Total: $${itemTotal.toFixed(2)}
+            Total: {itemTotal.toFixed(2)}
           </div>
         `;
         list.appendChild(row);
       });
 
-      document.getElementById('cartCountBadge').innerText = `${totalQty} Items`;
+      document.getElementById('cartCountBadge').innerText = `{totalQty} Items`;
       document.getElementById('cartTotalText').innerText = grandTotal.toFixed(2);
       lucide.createIcons();
     }
@@ -1261,7 +1261,7 @@
           type: 'Receivable',
           amount: grandTotal,
           dueDate: dueDate || null,
-          note: `Checkout Sale (${state.cart.length} items)`,
+          note: `Checkout Sale ({state.cart.length} items)`,
           date: new Date().toISOString(),
           payments: []
         };
@@ -1273,7 +1273,7 @@
           businessId: state.activeBusinessId,
           type: 'Income',
           amount: grandTotal,
-          desc: `Credit Sale Logged - Customer: ${customerName}`,
+          desc: `Credit Sale Logged - Customer: {customerName}`,
           date: new Date().toISOString()
         });
       } else if (state.selectedPaymentMethod === 'Cash') {
@@ -1282,7 +1282,7 @@
           businessId: state.activeBusinessId,
           type: 'Income',
           amount: grandTotal,
-          desc: `Cash Register Checkout Sale (${state.cart.length} items)`,
+          desc: `Cash Register Checkout Sale ({state.cart.length} items)`,
           date: new Date().toISOString()
         });
       } else {
@@ -1291,7 +1291,7 @@
           businessId: state.activeBusinessId,
           type: 'Income',
           amount: grandTotal,
-          desc: `Card Payment Checkout Sale (${state.cart.length} items)`,
+          desc: `Card Payment Checkout Sale ({state.cart.length} items)`,
           date: new Date().toISOString()
         });
       }
@@ -1349,9 +1349,9 @@
       });
       drawerBalance = totalIn - totalOut;
 
-      document.getElementById('deskDrawerBalance').innerText = '$' + drawerBalance.toFixed(2);
-      document.getElementById('deskTotalIn').innerText = '$' + totalIn.toFixed(2);
-      document.getElementById('deskTotalOut').innerText = '$' + totalOut.toFixed(2);
+      document.getElementById('deskDrawerBalance').innerText = '' + drawerBalance.toFixed(2);
+      document.getElementById('deskTotalIn').innerText = '' + totalIn.toFixed(2);
+      document.getElementById('deskTotalOut').innerText = '' + totalOut.toFixed(2);
 
       const tbody = document.getElementById('cashDeskTableBody');
       tbody.innerHTML = '';
@@ -1370,12 +1370,12 @@
         if (log.type === 'Expense') badgeClass = 'bg-vibrantRed/10 text-vibrantRed';
 
         tr.innerHTML = `
-          <td class="p-3 font-mono text-[11px] text-muted">${new Date(log.date).toLocaleString()}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${badgeClass}">${log.type}</span></td>
-          <td class="p-3 font-semibold text-black">${log.desc}</td>
-          <td class="p-3 text-right font-mono font-bold text-black">$${parseFloat(log.amount).toFixed(2)}</td>
+          <td class="p-3 font-mono text-[11px] text-muted">{new Date(log.date).toLocaleString()}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase {badgeClass}">{log.type}</span></td>
+          <td class="p-3 font-semibold text-black">{log.desc}</td>
+          <td class="p-3 text-right font-mono font-bold text-black">{parseFloat(log.amount).toFixed(2)}</td>
           <td class="p-3 text-right">
-            <button onclick="deleteCashRecord('${log.id}')" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            <button onclick="deleteCashRecord('{log.id}')" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1385,7 +1385,7 @@
 
     function openCashModal(type) {
       document.getElementById('modalCashType').value = type;
-      document.getElementById('cashModalTitle').innerText = `${type} Cash Entry`;
+      document.getElementById('cashModalTitle').innerText = `{type} Cash Entry`;
       document.getElementById('modalCashDesk').classList.remove('hidden');
     }
     function closeCashModal() { document.getElementById('modalCashDesk').classList.add('hidden'); }
@@ -1456,21 +1456,21 @@
 
         tr.innerHTML = `
           <td class="p-4">
-            <div class="font-bold text-black text-xs">${item.name}</div>
-            ${item.altNames ? `<div class="text-[10px] text-muted">Alt: ${item.altNames}</div>` : ''}
-            ${item.barcode ? `<div class="text-[9px] font-mono text-muted">SKU: ${item.barcode}</div>` : ''}
+            <div class="font-bold text-black text-xs">{item.name}</div>
+            {item.altNames ? `<div class="text-[10px] text-muted">Alt: {item.altNames}</div>` : ''}
+            {item.barcode ? `<div class="text-[9px] font-mono text-muted">SKU: {item.barcode}</div>` : ''}
           </td>
           <td class="p-4">
-            ${item.location ? `<span class="px-2 py-1 bg-zinc-200 rounded font-mono text-[10px] font-bold text-black">📍 ${item.location}</span>` : `<span class="text-muted text-[10px] italic">Unassigned</span>`}
+            {item.location ? `<span class="px-2 py-1 bg-zinc-200 rounded font-mono text-[10px] font-bold text-black">📍 {item.location}</span>` : `<span class="text-muted text-[10px] italic">Unassigned</span>`}
           </td>
-          <td class="p-4"><span class="px-2 py-1 bg-zinc-100 rounded text-[10px] font-bold text-black">${item.category || 'General'}</span></td>
-          <td class="p-4 text-right font-mono font-bold text-black">$${parseFloat(item.cost || 0).toFixed(2)}</td>
-          <td class="p-4 text-right font-mono font-bold text-black">$${parseFloat(item.price).toFixed(2)}</td>
-          <td class="p-4 text-right font-mono text-muted">${item.minPrice ? '$' + parseFloat(item.minPrice).toFixed(2) : '-'}</td>
-          <td class="p-4 text-center font-mono font-bold ${item.stock <= 2 ? 'text-vibrantRed font-extrabold' : 'text-black'}">${item.stock}</td>
+          <td class="p-4"><span class="px-2 py-1 bg-zinc-100 rounded text-[10px] font-bold text-black">{item.category || 'General'}</span></td>
+          <td class="p-4 text-right font-mono font-bold text-black">{parseFloat(item.cost || 0).toFixed(2)}</td>
+          <td class="p-4 text-right font-mono font-bold text-black">{parseFloat(item.price).toFixed(2)}</td>
+          <td class="p-4 text-right font-mono text-muted">{item.minPrice ? '' + parseFloat(item.minPrice).toFixed(2) : '-'}</td>
+          <td class="p-4 text-center font-mono font-bold {item.stock <= 2 ? 'text-vibrantRed font-extrabold' : 'text-black'}">{item.stock}</td>
           <td class="p-4 text-right space-x-1">
-            <button onclick="openInventoryModal('${item.id}')" class="p-1.5 hover:bg-zinc-200 rounded text-black"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-            <button onclick="deleteInventoryItem('${item.id}')" class="p-1.5 hover:bg-zinc-200 rounded text-vibrantRed"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            <button onclick="openInventoryModal('{item.id}')" class="p-1.5 hover:bg-zinc-200 rounded text-black"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+            <button onclick="deleteInventoryItem('{item.id}')" class="p-1.5 hover:bg-zinc-200 rounded text-vibrantRed"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1605,10 +1605,10 @@
         }
       });
 
-      document.getElementById('totalPayableText').innerText = '$' + totalPayable.toFixed(2);
-      document.getElementById('totalReceivableText').innerText = '$' + totalReceivable.toFixed(2);
+      document.getElementById('totalPayableText').innerText = '' + totalPayable.toFixed(2);
+      document.getElementById('totalReceivableText').innerText = '' + totalReceivable.toFixed(2);
       const net = totalReceivable - totalPayable;
-      document.getElementById('netLiquidityText').innerText = (net >= 0 ? '+' : '') + '$' + net.toFixed(2);
+      document.getElementById('netLiquidityText').innerText = (net >= 0 ? '+' : '') + '' + net.toFixed(2);
 
       if (Object.keys(grouped).length === 0) {
         container.innerHTML = `<div class="col-span-full py-12 text-center text-muted font-bold text-xs">No active credit accounts found.</div>`;
@@ -1641,18 +1641,18 @@
             <div class="bg-zinc-50 border border-theme rounded-xl p-3 space-y-2">
               <div class="flex justify-between items-start">
                 <div>
-                  <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${r.type === 'Receivable' ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-vibrantRed/10 text-vibrantRed'}">${r.type}</span>
-                  <p class="text-xs font-semibold text-black mt-1">${r.note || 'No notes'}</p>
-                  <p class="text-[9px] text-muted font-mono">${new Date(r.date).toLocaleDateString()}</p>
+                  <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase {r.type === 'Receivable' ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-vibrantRed/10 text-vibrantRed'}">{r.type}</span>
+                  <p class="text-xs font-semibold text-black mt-1">{r.note || 'No notes'}</p>
+                  <p class="text-[9px] text-muted font-mono">{new Date(r.date).toLocaleDateString()}</p>
                 </div>
                 <div class="text-right">
-                  <span class="text-xs font-mono font-bold text-black">$${parseFloat(r.amount).toFixed(2)}</span>
-                  <p class="text-[10px] font-mono font-extrabold ${rem > 0 ? 'text-vibrantRed' : 'text-vibrantGreen'}">Rem: $${rem.toFixed(2)}</p>
+                  <span class="text-xs font-mono font-bold text-black">{parseFloat(r.amount).toFixed(2)}</span>
+                  <p class="text-[10px] font-mono font-extrabold {rem > 0 ? 'text-vibrantRed' : 'text-vibrantGreen'}">Rem: {rem.toFixed(2)}</p>
                 </div>
               </div>
               <div class="flex justify-end gap-2 pt-1 border-t border-theme">
-                ${rem > 0 ? `<button onclick="openPaymentModal('${r.id}')" class="px-2.5 py-1 bg-black text-white rounded-lg text-[10px] font-bold">Log Payment</button>` : `<span class="text-[10px] text-vibrantGreen font-bold">Settled</span>`}
-                <button onclick="deleteCreditRecord('${r.id}')" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                {rem > 0 ? `<button onclick="openPaymentModal('{r.id}')" class="px-2.5 py-1 bg-black text-white rounded-lg text-[10px] font-bold">Log Payment</button>` : `<span class="text-[10px] text-vibrantGreen font-bold">Settled</span>`}
+                <button onclick="deleteCreditRecord('{r.id}')" class="text-muted hover:text-vibrantRed p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
               </div>
             </div>
           `;
@@ -1661,15 +1661,15 @@
         card.innerHTML = `
           <div class="flex justify-between items-center border-b border-theme pb-3">
             <h5 class="font-extrabold text-sm text-black flex items-center gap-2">
-              <i data-lucide="user" class="w-4 h-4 text-muted"></i> ${personName}
+              <i data-lucide="user" class="w-4 h-4 text-muted"></i> {personName}
             </h5>
             <div class="text-right">
               <span class="text-[10px] text-muted font-bold block">Balance Standing</span>
-              <span class="font-mono text-xs font-black text-black">Owes Us: $${personReceivable.toFixed(2)} | We Owe: $${personPayable.toFixed(2)}</span>
+              <span class="font-mono text-xs font-black text-black">Owes Us: {personReceivable.toFixed(2)} | We Owe: {personPayable.toFixed(2)}</span>
             </div>
           </div>
           <div class="space-y-2">
-            ${personRows}
+            {personRows}
           </div>
         `;
         container.appendChild(card);
@@ -1706,7 +1706,7 @@
         businessId: state.activeBusinessId,
         type: type === 'Receivable' ? 'Income' : 'Expense',
         amount: amount,
-        desc: `Credit Ledger Added (${type}) - ${person}: ${note || 'No notes'}`,
+        desc: `Credit Ledger Added ({type}) - {person}: {note || 'No notes'}`,
         date: new Date().toISOString()
       });
 
@@ -1747,7 +1747,7 @@
           businessId: state.activeBusinessId,
           type: credit.type === 'Receivable' ? 'Income' : 'Expense',
           amount: amount,
-          desc: `Ledger Payment Received from ${credit.person} (${note || 'Partial Payment'})`,
+          desc: `Ledger Payment Received from {credit.person} ({note || 'Partial Payment'})`,
           date: new Date().toISOString()
         });
 
@@ -1776,7 +1776,7 @@
       state.inventory.filter(i => i.businessId === state.activeBusinessId).forEach(i => {
         const opt = document.createElement('option');
         opt.value = i.id;
-        opt.innerText = `${i.name} (Cost: $${i.cost || 0} | Sell: $${i.price})`;
+        opt.innerText = `{i.name} (Cost: {i.cost || 0} | Sell: {i.price})`;
         selectTemplate.appendChild(opt);
       });
 
@@ -1808,11 +1808,11 @@
         tr.className = 'hover:bg-zinc-50';
 
         tr.innerHTML = `
-          <td class="p-3 font-mono text-[10px] text-muted">${new Date(s.date).toLocaleDateString()} ${new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-          <td class="p-3 font-bold text-black">${s.productName}</td>
-          <td class="p-3 text-center font-mono font-bold">${s.qty}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${profit >= 0 ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-vibrantRed/10 text-vibrantRed'}">${margin.toFixed(1)}%</span></td>
-          <td class="p-3 text-right font-mono font-bold text-black">$${profit.toFixed(2)}</td>
+          <td class="p-3 font-mono text-[10px] text-muted">{new Date(s.date).toLocaleDateString()} {new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+          <td class="p-3 font-bold text-black">{s.productName}</td>
+          <td class="p-3 text-center font-mono font-bold">{s.qty}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold {profit >= 0 ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-vibrantRed/10 text-vibrantRed'}">{margin.toFixed(1)}%</span></td>
+          <td class="p-3 text-right font-mono font-bold text-black">{profit.toFixed(2)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1841,9 +1841,9 @@
       const profit = totalRev - totalCost;
       const margin = totalRev > 0 ? (profit / totalRev) * 100 : 0;
 
-      document.getElementById('sandboxTotalCostText').innerText = '$' + totalCost.toFixed(2);
-      document.getElementById('sandboxTotalRevenueText').innerText = '$' + totalRev.toFixed(2);
-      document.getElementById('sandboxProfitText').innerText = '$' + profit.toFixed(2);
+      document.getElementById('sandboxTotalCostText').innerText = '' + totalCost.toFixed(2);
+      document.getElementById('sandboxTotalRevenueText').innerText = '' + totalRev.toFixed(2);
+      document.getElementById('sandboxProfitText').innerText = '' + profit.toFixed(2);
       document.getElementById('sandboxMarginBadge').innerText = margin.toFixed(1) + '% Margin';
     }
 
@@ -1872,8 +1872,8 @@
       const netProfit = grossRev - totalCost;
       const avgMargin = grossRev > 0 ? (netProfit / grossRev) * 100 : 0;
 
-      document.getElementById('kpiGrossRevenue').innerText = '$' + grossRev.toFixed(2);
-      document.getElementById('kpiNetProfit').innerText = '$' + netProfit.toFixed(2);
+      document.getElementById('kpiGrossRevenue').innerText = '' + grossRev.toFixed(2);
+      document.getElementById('kpiNetProfit').innerText = '' + netProfit.toFixed(2);
       document.getElementById('kpiAverageMargin').innerText = avgMargin.toFixed(1) + '%';
 
       // Low stock warnings count
@@ -1900,11 +1900,11 @@
           div.className = 'space-y-1';
           div.innerHTML = `
             <div class="flex justify-between text-xs font-bold text-black">
-              <span>${cat}</span>
-              <span class="font-mono">$${val.toFixed(2)} (${pct.toFixed(1)}%)</span>
+              <span>{cat}</span>
+              <span class="font-mono">{val.toFixed(2)} ({pct.toFixed(1)}%)</span>
             </div>
             <div class="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
-              <div class="h-full bg-black rounded-full" style="width: ${pct}%"></div>
+              <div class="h-full bg-black rounded-full" style="width: {pct}%"></div>
             </div>
           `;
           catContainer.appendChild(div);
@@ -1923,16 +1923,16 @@
         }
       });
 
-      document.getElementById('riskCardReceivables').innerText = '$' + totalReceivable.toFixed(2);
-      document.getElementById('riskCardPayables').innerText = '$' + totalPayable.toFixed(2);
+      document.getElementById('riskCardReceivables').innerText = '' + totalReceivable.toFixed(2);
+      document.getElementById('riskCardPayables').innerText = '' + totalPayable.toFixed(2);
 
       const totalRisk = totalReceivable + totalPayable;
       const recPct = totalRisk > 0 ? (totalReceivable / totalRisk) * 100 : 50;
       const payPct = totalRisk > 0 ? (totalPayable / totalRisk) * 100 : 50;
 
       document.getElementById('comparativeRiskBar').innerHTML = `
-        <div class="bg-vibrantGreen h-full" style="width: ${recPct}%" title="Receivables"></div>
-        <div class="bg-vibrantRed h-full" style="width: ${payPct}%" title="Payables"></div>
+        <div class="bg-vibrantGreen h-full" style="width: {recPct}%" title="Receivables"></div>
+        <div class="bg-vibrantRed h-full" style="width: {payPct}%" title="Payables"></div>
       `;
     }
 
@@ -1967,8 +1967,8 @@
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center bg-zinc-100 p-2.5 rounded-xl border border-theme text-xs font-bold text-black';
         div.innerHTML = `
-          <span>${cat}</span>
-          ${state.categories.length > 1 ? `<button onclick="removeCategoryItem(${index})" class="text-muted hover:text-vibrantRed"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+          <span>{cat}</span>
+          {state.categories.length > 1 ? `<button onclick="removeCategoryItem({index})" class="text-muted hover:text-vibrantRed"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
         `;
         container.appendChild(div);
       });
@@ -2010,7 +2010,7 @@
           if (item) {
             addToCart(item);
           } else {
-            showCustomAlert(`No product registered with barcode: ${decodedText}`);
+            showCustomAlert(`No product registered with barcode: {decodedText}`);
           }
         } else {
           const input = document.getElementById(scanTargetInputId);
@@ -2054,7 +2054,7 @@
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
       const dlAnchorElem = document.createElement('a');
       dlAnchorElem.setAttribute("href", dataStr);
-      dlAnchorElem.setAttribute("download", `OnyxPOS_Backup_${new Date().toISOString().split('T')[0]}.json`);
+      dlAnchorElem.setAttribute("download", `OnyxPOS_Backup_{new Date().toISOString().split('T')[0]}.json`);
       document.body.appendChild(dlAnchorElem);
       dlAnchorElem.click();
       dlAnchorElem.remove();
@@ -2127,17 +2127,17 @@
       doc.setFontSize(16);
       doc.text(currentBiz ? currentBiz.name : 'OnyxPOS', 14, 15);
       doc.setFontSize(10);
-      doc.text(`Report: ${title} | Generated: ${new Date().toLocaleString()}`, 14, 22);
+      doc.text(`Report: {title} | Generated: {new Date().toLocaleString()}`, 14, 22);
 
       if (viewType === 'inventory') {
         const headers = [["Product", "Location", "Category", "Cost", "Price", "Min Price", "Stock"]];
         const data = state.inventory.filter(i => i.businessId === state.activeBusinessId).map(i => [
-          i.name + (i.altNames ? ` (${i.altNames})` : ''),
+          i.name + (i.altNames ? ` ({i.altNames})` : ''),
           i.location || '-',
           i.category || 'General',
-          '$' + parseFloat(i.cost || 0).toFixed(2),
-          '$' + parseFloat(i.price).toFixed(2),
-          i.minPrice ? '$' + parseFloat(i.minPrice).toFixed(2) : '-',
+          '' + parseFloat(i.cost || 0).toFixed(2),
+          '' + parseFloat(i.price).toFixed(2),
+          i.minPrice ? '' + parseFloat(i.minPrice).toFixed(2) : '-',
           i.stock
         ]);
         doc.autoTable({ head: headers, body: data, startY: 28 });
@@ -2147,7 +2147,7 @@
           new Date(c.date).toLocaleString(),
           c.type,
           c.desc,
-          '$' + parseFloat(c.amount).toFixed(2)
+          '' + parseFloat(c.amount).toFixed(2)
         ]);
         doc.autoTable({ head: headers, body: data, startY: 28 });
       } else if (viewType === 'credit') {
@@ -2155,7 +2155,7 @@
         const data = state.credits.filter(c => c.businessId === state.activeBusinessId).map(c => [
           c.person,
           c.type,
-          '$' + parseFloat(c.amount).toFixed(2),
+          '' + parseFloat(c.amount).toFixed(2),
           c.note || '-',
           new Date(c.date).toLocaleDateString()
         ]);
@@ -2166,14 +2166,14 @@
           new Date(s.date).toLocaleString(),
           s.productName,
           s.qty,
-          '$' + parseFloat(s.sellPrice).toFixed(2),
-          '$' + (parseFloat(s.cost || 0) * s.qty).toFixed(2),
-          '$' + ((parseFloat(s.sellPrice) - parseFloat(s.cost || 0)) * s.qty).toFixed(2)
+          '' + parseFloat(s.sellPrice).toFixed(2),
+          '' + (parseFloat(s.cost || 0) * s.qty).toFixed(2),
+          '' + ((parseFloat(s.sellPrice) - parseFloat(s.cost || 0)) * s.qty).toFixed(2)
         ]);
         doc.autoTable({ head: headers, body: data, startY: 28 });
       }
 
-      doc.save(`${title.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`{title.replace(/ /g, '_')}_{new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     function triggerReceiptPrint() {
@@ -2187,10 +2187,10 @@
         grandTotal += total;
         cartRows += `
           <tr>
-            <td style="padding: 4px 0;">${c.name}</td>
-            <td style="padding: 4px 0; text-align: center;">${c.qty}</td>
-            <td style="padding: 4px 0; text-align: right;">$${c.customPrice.toFixed(2)}</td>
-            <td style="padding: 4px 0; text-align: right;">$${total.toFixed(2)}</td>
+            <td style="padding: 4px 0;">{c.name}</td>
+            <td style="padding: 4px 0; text-align: center;">{c.qty}</td>
+            <td style="padding: 4px 0; text-align: right;">{c.customPrice.toFixed(2)}</td>
+            <td style="padding: 4px 0; text-align: right;">{total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -2198,9 +2198,9 @@
       const printHtml = `
         <div style="font-family: monospace; width: 280px; margin: 0 auto; padding: 10px; font-size: 11px; color: #000;">
           <div style="text-align: center; margin-bottom: 10px;">
-            <h2 style="margin: 0; font-size: 16px; font-weight: bold;">${currentBiz ? currentBiz.name : 'OnyxPOS'}</h2>
+            <h2 style="margin: 0; font-size: 16px; font-weight: bold;">{currentBiz ? currentBiz.name : 'OnyxPOS'}</h2>
             <p style="margin: 2px 0; font-size: 9px;">Official Sales Receipt</p>
-            <p style="margin: 2px 0; font-size: 9px;">${new Date().toLocaleString()}</p>
+            <p style="margin: 2px 0; font-size: 9px;">{new Date().toLocaleString()}</p>
           </div>
           <hr style="border-top: 1px dashed #000; margin: 8px 0;" />
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -2213,16 +2213,16 @@
               </tr>
             </thead>
             <tbody>
-              ${cartRows}
+              {cartRows}
             </tbody>
           </table>
           <hr style="border-top: 1px dashed #000; margin: 8px 0;" />
           <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">
             <span>TOTAL:</span>
-            <span>$${grandTotal.toFixed(2)}</span>
+            <span>{grandTotal.toFixed(2)}</span>
           </div>
           <div style="margin-top: 4px; font-size: 10px;">
-            Payment Method: <strong>${state.selectedPaymentMethod}</strong>
+            Payment Method: <strong>{state.selectedPaymentMethod}</strong>
           </div>
           <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
           <div style="text-align: center; font-size: 9px;">
