@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnyxPOS - Easy Shop & Stock Manager</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#000000">
+  <!-- iOS Safari PWA Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Onyx POS">
+  <link class="apple-touch-icon" href="icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- HTML5 QR Code Scanner Library for Camera Barcode Scanning -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <!-- jsPDF & AutoTable for Reliable Mobile PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace']
+          },
+          colors: {
+            pureBlack: '#000000',
+            pureWhite: '#FFFFFF',
+            vibrantGreen: '#00E676',
+            vibrantRed: '#FF1744'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --bg-main: #FAFAFA;
+      --bg-panel: #FFFFFF;
+      --bg-element: #F4F4F5;
+      --border-color: #E4E4E7;
+      --text-main: #000000;
+      --text-muted: #71717A;
+      --accent-color: #000000;
+      --accent-text: #FFFFFF;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+    .panel-card {
+      background-color: var(--bg-panel);
+      border-color: var(--border-color);
+    }
+    .element-card {
+      background-color: var(--bg-element);
+    }
+    .text-muted {
+      color: var(--text-muted);
+    }
+    .border-theme {
+      border-color: var(--border-color);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @media print {
+      @page { margin: 0mm; size: auto; }
+      body { background: #FFFFFF !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; }
+      body > *:not(#printArea) { display: none !important; }
+      #printArea { display: block !important; width: 100% !important; position: absolute !important; left: 0 !important; top: 0 !important; margin: 0 !important; padding: 10px !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row antialiased overflow-x-hidden font-sans">
+
+  <audio id="scanBeep" src="scanbeep.mp3" preload="auto"></audio>
+
+  <!-- MOBILE HEADER -->
+  <div class="lg:hidden w-full panel-card border-b border-theme p-5 flex items-center justify-between z-30 sticky top-0 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 flex items-center justify-center overflow-hidden bg-black text-white rounded-xl font-bold">
+        OP
+      </div>
+      <div>
+        <h1 class="font-extrabold text-base tracking-tight text-black">OnyxPOS</h1>
+        <p class="text-[9px] tracking-widest uppercase font-bold text-muted">Shop Manager</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="mobileMenuBtn" class="p-2 bg-zinc-200 rounded-xl text-black">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 -translate-x-full lg:translate-x-0 lg:static w-72 panel-card border-r border-theme flex flex-col shrink-0 z-40 transition-transform duration-350 ease-in-out h-screen shadow-2xl lg:shadow-none">
+    
+    <div class="hidden lg:flex p-6 border-b border-theme items-center gap-3">
+      <div class="w-12 h-12 flex items-center justify-center overflow-hidden shrink-0 bg-black text-white rounded-2xl font-black text-xl shadow-md">
+        OP
+      </div>
+      <div>
+        <h1 class="font-extrabold text-lg tracking-tight text-black">OnyxPOS</h1>
+        <p class="text-[10px] tracking-widest uppercase font-bold text-muted">Shop Hub</p>
+      </div>
+    </div>
+
+    <div class="lg:hidden p-4 flex justify-end border-b border-theme">
+      <button id="closeSidebarBtn" class="p-1.5 rounded-xl hover:bg-zinc-200 text-black">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="p-5 border-b border-theme bg-opacity-20 bg-black">
+      <label class="block text-[10px] uppercase tracking-wider font-extrabold text-muted mb-2">Active Branch</label>
+      <div class="relative mb-2">
+        <select id="businessSelector" class="w-full bg-transparent border border-theme rounded-xl p-3 text-xs font-semibold focus:ring-1 focus:ring-current outline-none cursor-pointer appearance-none text-black">
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted">
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </div>
+      </div>
+      <button onclick="openBusinessModal()" class="w-full mt-2 bg-transparent hover:bg-zinc-200 border border-theme text-black text-[11px] font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Branch Store
+      </button>
+    </div>
+
+    <nav class="flex-1 p-5 space-y-1.5 overflow-y-auto no-scrollbar">
+      <p class="text-[9px] uppercase tracking-widest font-extrabold text-muted px-2 mb-2">Operations</p>
+      
+      <button onclick="switchTab('register')" id="nav-register" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all bg-black text-white">
+        <i data-lucide="shopping-cart" class="w-4 h-4"></i> <span>Cashier Checkout</span>
+      </button>
+
+      <button onclick="switchTab('cashdesk')" id="nav-cashdesk" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black">
+        <i data-lucide="banknote" class="w-4 h-4"></i> <span>Cash Desk / Register</span>
+      </button>
+
+      <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black">
+        <i data-lucide="package" class="w-4 h-4"></i> <span>Stock Manager</span>
+      </button>
+
+      <button onclick="switchTab('credit')" id="nav-credit" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black">
+        <i data-lucide="credit-card" class="w-4 h-4"></i> <span>Customer & Credit Ledger</span>
+      </button>
+
+      <button onclick="switchTab('calculator')" id="nav-calculator" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black">
+        <i data-lucide="trending-up" class="w-4 h-4"></i> <span>Profit Margin Tool</span>
+      </button>
+
+      <button onclick="switchTab('reports')" id="nav-reports" class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black">
+        <i data-lucide="pie-chart" class="w-4 h-4"></i> <span>Business Reports</span>
+      </button>
+    </nav>
+
+    <div class="p-5 mt-auto space-y-3 border-t border-theme">
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="exportDatabaseFile()" class="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all text-black bg-zinc-200 hover:bg-zinc-300 border border-theme">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> <span>Backup DB</span>
+        </button>
+        <button onclick="document.getElementById('importDbFile').click()" class="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all text-black bg-zinc-200 hover:bg-zinc-300 border border-theme">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i> <span>Restore DB</span>
+        </button>
+        <input type="file" id="importDbFile" accept=".json,.txt,.csv" class="hidden" onchange="importDatabaseFile(event)">
+      </div>
+      <button onclick="triggerHardResetConfirmation()" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all text-vibrantRed bg-vibrantRed/10 hover:bg-vibrantRed/20 border border-vibrantRed/20">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> <span>Wipe Database</span>
+      </button>
+    </div>
+  </aside>
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden"></div>
+
+  <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <header class="panel-card border-b border-theme px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0 shadow-sm z-10">
+      <div>
+        <h2 id="activeTabTitle" class="text-xl lg:text-2xl font-black tracking-tight text-black">Cashier Checkout</h2>
+        <p class="text-xs text-muted mt-0.5">
+          Active Branch Store: <span id="headerBusinessName" class="font-extrabold underline text-black">No Store Configured</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-3 self-stretch sm:self-auto justify-between sm:justify-end">
+        <div class="px-3.5 py-1.5 bg-zinc-100 border border-theme rounded-[16px] text-xs font-bold flex items-center gap-2 text-black shadow-inner">
+          <i data-lucide="calendar" class="w-4 h-4 text-muted"></i>
+          <span id="currentSystemTime">--:--</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: POS REGISTER / CASHIER -->
+      <!-- ========================================== -->
+      <div id="tab-register" class="tab-pane">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 space-y-4">
+            <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col sm:flex-row items-center gap-3">
+              <div class="relative w-full sm:flex-1">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4"></i>
+                <input type="text" id="registerSearch" oninput="handleRegisterSearchInput()" placeholder="Type Name, Alternative Name, or Scan Barcode..." class="w-full bg-zinc-100 border border-theme rounded-xl py-2 pl-10 pr-4 text-xs font-medium text-black focus:outline-none focus:ring-1 focus:ring-current"/>
+              </div>
+              <div class="w-full sm:w-auto">
+                <select id="registerCategoryFilter" onchange="renderRegisterGrid()" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-bold text-black focus:outline-none">
+                  <option value="All">All Categories</option>
+                </select>
+              </div>
+              <button onclick="exportViewToPDF('register', 'POS Register Items')" class="px-4 py-2 bg-zinc-100 border border-theme hover:bg-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 text-black">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i> PDF
+              </button>
+            </div>
+            <div id="registerItemGrid" class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3"></div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="panel-card border border-theme rounded-[22px] flex flex-col overflow-hidden min-h-[500px]">
+              <div class="p-4 border-b border-theme flex justify-between items-center bg-zinc-50">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="receipt" class="text-muted w-5 h-5"></i>
+                  <h3 class="font-bold text-sm tracking-tight text-black">Active Receipt & Bargain</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="startBarcodeScan('directCart')" class="px-3 py-2 bg-black text-white hover:bg-zinc-800 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold shadow-lg transition-all">
+                    <i data-lucide="scan-barcode" class="w-4 h-4"></i> Scan
+                  </button>
+                  <span id="cartCountBadge" class="px-2.5 py-1 bg-zinc-200 rounded-full text-[10px] font-extrabold text-black hidden sm:inline-block">0 Items</span>
+                </div>
+              </div>
+
+              <div id="cartBasketList" class="flex-1 overflow-y-auto p-5 space-y-3 max-h-[350px]"></div>
+
+              <div class="p-5 border-t border-theme bg-zinc-50 space-y-4">
+                <div>
+                  <label class="block text-[10px] text-muted font-black uppercase tracking-wider mb-2">Payment Option</label>
+                  <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setPaymentMethod('Cash')" id="btn-pay-cash" class="py-2.5 bg-black text-white rounded-xl text-xs font-black border border-transparent transition-all shadow-md">Cash</button>
+                    <button onclick="setPaymentMethod('Card')" id="btn-pay-card" class="py-2.5 bg-zinc-150 text-muted hover:text-black rounded-xl text-xs font-bold border border-theme transition-all">Card</button>
+                    <button onclick="setPaymentMethod('Credit')" id="btn-pay-credit" class="py-2.5 bg-zinc-150 text-muted hover:text-black rounded-xl text-xs font-bold border border-theme transition-all">Credit</button>
+                  </div>
+                </div>
+
+                <div id="checkoutCreditDetails" class="hidden animate-fadeIn space-y-2">
+                  <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-black">Person's Name *</label>
+                    <input type="text" id="checkoutCustomerName" list="borrowerNames" placeholder="e.g. Robert Stark" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-medium text-black focus:outline-none"/>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-black">Optional Due Date</label>
+                    <input type="date" id="checkoutDueDate" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-medium text-black focus:outline-none"/>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 pt-2 border-t border-theme">
+                  <div class="flex justify-between text-sm font-black pt-1 text-black">
+                    <span>Grand Total</span>
+                    <span id="cartTotalText" class="font-mono text-base font-extrabold">0.00</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-5 gap-2">
+                  <button onclick="processCheckout()" class="col-span-4 py-3.5 bg-black text-white hover:scale-[1.01] active:scale-[0.99] font-black rounded-xl text-xs uppercase tracking-wider transition-all">
+                    Process Payment & Cash Register
+                  </button>
+                  <button onclick="triggerReceiptPrint()" class="col-span-1 p-3 bg-zinc-200 hover:bg-zinc-350 text-black rounded-xl text-xs flex items-center justify-center transition-all">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: CASH DESK -->
+      <!-- ========================================== -->
+      <div id="tab-cashdesk" class="tab-pane hidden">
+        <div class="space-y-6">
+          <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-black text-sm uppercase text-black tracking-tight">Daily Cash Register</h3>
+                <p class="text-[10px] text-muted uppercase tracking-widest font-bold">Manage Drawer Balance</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] text-muted font-bold">Log Date:</span>
+              <input type="date" id="cashDeskFilterDate" onchange="renderCashDesk()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black font-mono font-bold" />
+              <button onclick="document.getElementById('cashDeskFilterDate').value = ''; renderCashDesk();" class="p-1 text-muted hover:text-black"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="panel-card border border-theme rounded-[22px] p-5 md:col-span-2 bg-black text-white shadow-lg relative overflow-hidden">
+              <div class="absolute -right-6 -top-6 opacity-10">
+                <i data-lucide="banknote" class="w-40 h-40"></i>
+              </div>
+              <span class="text-[10px] text-zinc-400 uppercase tracking-wider font-extrabold block relative z-10">Current Drawer Cash</span>
+              <div class="mt-2 relative z-10 flex justify-between items-end">
+                <p id="deskDrawerBalance" class="text-4xl font-black font-mono">0.00</p>
+                <button onclick="exportViewToPDF('cashdesk', 'Daily Cash Register')" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all">
+                   <i data-lucide="download" class="w-3 h-3"></i> PDF Log
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-center">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold block">Total Cash In (Sales + Income)</span>
+              <p id="deskTotalIn" class="text-xl font-black text-vibrantGreen font-mono mt-1">0.00</p>
+            </div>
+
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-center">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold block">Total Cash Out (Expenses)</span>
+              <p id="deskTotalOut" class="text-xl font-black text-vibrantRed font-mono mt-1">0.00</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button onclick="openCashModal('Opening')" class="px-4 py-2.5 bg-zinc-100 border border-theme text-black font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-zinc-200 transition-all">
+              <i data-lucide="sun" class="w-4 h-4"></i> Set Opening Balance
+            </button>
+            <button onclick="openCashModal('Income')" class="px-4 py-2.5 bg-vibrantGreen/10 border border-vibrantGreen/20 text-vibrantGreen font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-vibrantGreen/20 transition-all">
+              <i data-lucide="arrow-down-to-line" class="w-4 h-4"></i> Add Extra Income
+            </button>
+            <button onclick="openCashModal('Expense')" class="px-4 py-2.5 bg-vibrantRed/10 border border-vibrantRed/20 text-vibrantRed font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-vibrantRed/20 transition-all">
+              <i data-lucide="arrow-up-from-line" class="w-4 h-4"></i> Register Expense (Bills/Rent)
+            </button>
+          </div>
+
+          <div class="panel-card rounded-[22px] border border-theme overflow-hidden">
+            <div class="p-4 border-b border-theme bg-zinc-50">
+              <h4 class="font-extrabold text-xs uppercase tracking-wider text-black">Log Activity</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr class="bg-zinc-100 border-b border-theme">
+                    <th class="p-3 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">Time / Date</th>
+                    <th class="p-3 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">Type</th>
+                    <th class="p-3 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap w-1/2">Description</th>
+                    <th class="p-3 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Amount</th>
+                    <th class="p-3 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="cashDeskTableBody" class="divide-y divide-theme text-xs text-black">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: INVENTORY / VAULT -->
+      <!-- ========================================== -->
+      <div id="tab-inventory" class="tab-pane hidden">
+        <div class="space-y-4">
+          <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto md:flex-1">
+              <div class="relative w-full sm:w-80">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4"></i>
+                <input type="text" id="inventorySearch" oninput="renderInventoryTable()" placeholder="Search name, alt name or barcode..." class="w-full bg-zinc-100 border border-theme rounded-xl py-2 pl-10 pr-4 text-xs font-medium text-black focus:outline-none"/>
+              </div>
+              <button onclick="startBarcodeScan('inventorySearch')" class="p-2.5 bg-zinc-100 border border-theme hover:bg-zinc-200 text-black rounded-xl flex items-center justify-center gap-1 text-xs font-bold transition-all">
+                <i data-lucide="scan-barcode" class="w-4 h-4"></i> Scan
+              </button>
+              <div class="w-full sm:w-auto flex items-center gap-2">
+                <select id="inventoryCategoryFilter" onchange="renderInventoryTable()" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-bold text-black focus:outline-none">
+                  <option value="All">All Categories</option>
+                </select>
+                <button onclick="openCategoryModal()" title="Manage Categories" class="p-2.5 bg-zinc-100 border border-theme text-black rounded-xl">
+                  <i data-lucide="folder-open" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <button onclick="exportViewToPDF('inventory', 'Inventory Asset Report')" class="px-4 py-3 bg-zinc-100 border border-theme hover:bg-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 text-black">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF
+              </button>
+              <button onclick="openInventoryModal(false)" class="flex-1 md:flex-none px-5 py-3 bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Product
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-card rounded-[22px] border border-theme overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr class="bg-zinc-100 border-b border-theme">
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">Product Name & Alt Names</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">Category</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Cost</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Standard Price</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Min / Bargain Price</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-center">In Stock</th>
+                    <th class="p-4 text-[10px] font-bold text-muted uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody" class="divide-y divide-theme text-xs text-black">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: CREDIT LEDGER -->
+      <!-- ========================================== -->
+      <div id="tab-credit" class="tab-pane hidden">
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex items-center justify-between shadow-sm">
+              <div class="space-y-1">
+                <span class="text-[10px] text-muted uppercase tracking-wider font-bold block">We Owe (Payables)</span>
+                <p id="totalPayableText" class="text-2xl font-black text-vibrantRed font-mono">0.00</p>
+                <p class="text-[9px] text-muted">What we owe suppliers</p>
+              </div>
+              <div class="p-3 bg-vibrantRed/10 rounded-2xl text-vibrantRed border border-vibrantRed/15">
+                <i data-lucide="trending-up" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex items-center justify-between shadow-sm">
+              <div class="space-y-1">
+                <span class="text-[10px] text-muted uppercase tracking-wider font-bold block">Owed to Us (Receivables)</span>
+                <p id="totalReceivableText" class="text-2xl font-black text-vibrantGreen font-mono">0.00</p>
+                <p class="text-[9px] text-muted">What customers owe us</p>
+              </div>
+              <div class="p-3 bg-vibrantGreen/10 rounded-2xl text-vibrantGreen border border-vibrantGreen/15">
+                <i data-lucide="trending-down" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex items-center justify-between shadow-sm">
+              <div class="space-y-1">
+                <span class="text-[10px] text-muted uppercase tracking-wider font-bold block">Net Leverage Standing</span>
+                <p id="netLiquidityText" class="text-2xl font-black font-mono">0.00</p>
+                <p class="text-[9px] text-muted">Net credit position</p>
+              </div>
+              <div class="p-3 bg-zinc-200 rounded-2xl border border-theme">
+                <i data-lucide="scale" class="w-6 h-6 text-muted"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <div class="relative w-full sm:w-48 lg:w-64">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-3.5 h-3.5"></i>
+                <input type="text" id="creditSearchFilter" oninput="renderCreditLedger()" placeholder="Search Name..." class="w-full bg-zinc-100 border border-theme rounded-lg py-1.5 pl-8 pr-3 text-xs text-black focus:outline-none"/>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-muted">From:</span>
+                <input type="date" id="creditFilterStart" onchange="renderCreditLedger()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+                <span class="text-[11px] text-muted">To:</span>
+                <input type="date" id="creditFilterEnd" onchange="renderCreditLedger()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+                <button onclick="clearDateFilter('credit')" class="p-1 text-muted hover:text-black"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+              <button onclick="exportViewToPDF('credit', 'Credit Ledger Account Summary')" class="px-4 py-2.5 bg-zinc-100 border border-theme hover:bg-zinc-200 text-black rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF
+              </button>
+              <button onclick="openCreditModal()" class="px-4 py-2.5 bg-black text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Credit Log
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <h4 class="font-extrabold text-sm uppercase text-black tracking-tight">Active Accounts Grouped</h4>
+            <div id="groupedCreditsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 5: PROFIT MARGIN CALCULATOR -->
+      <!-- ========================================== -->
+      <div id="tab-calculator" class="tab-pane hidden">
+        <div class="space-y-4">
+          <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-muted font-bold">From:</span>
+              <input type="date" id="calcFilterStart" onchange="renderRealizedMarginalStreams()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+              <span class="text-[11px] text-muted font-bold">To:</span>
+              <input type="date" id="calcFilterEnd" onchange="renderRealizedMarginalStreams()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+              <button onclick="clearDateFilter('calc')" class="p-1 text-muted hover:text-black"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <button onclick="exportViewToPDF('calculator', 'Profit Streams & Margins')" class="px-4 py-2 bg-zinc-100 border border-theme hover:bg-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 text-black">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Export Margin Report PDF
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="panel-card border border-theme rounded-[22px] p-5 space-y-4 h-fit">
+              <div>
+                <h3 class="font-black text-base text-black">Margin Sandbox</h3>
+                <p class="text-xs text-muted">Mock up pricing margins instantly.</p>
+              </div>
+              <div class="space-y-1.5">
+                <label class="block text-[10px] text-muted uppercase tracking-wider font-bold">Import Template from Stock</label>
+                <select id="calcVaultImport" onchange="handleCalcTemplateImport()" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-bold text-black focus:outline-none"></select>
+              </div>
+              <hr class="border-theme" />
+              <div class="space-y-3.5">
+                <div>
+                  <label class="block text-[10px] text-muted uppercase font-bold">Product Label</label>
+                  <input type="text" id="calcLabel" oninput="updateSandboxEstimations()" class="w-full bg-zinc-100 border border-theme rounded-xl px-3 py-2 text-xs font-semibold text-black focus:outline-none"/>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase font-bold">Purchase Cost</label>
+                    <input type="number" id="calcCost" oninput="updateSandboxEstimations()" class="w-full bg-zinc-100 border border-theme rounded-xl px-3 py-2 text-xs font-semibold text-black focus:outline-none"/>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase font-bold">Selling Price</label>
+                    <input type="number" id="calcSell" oninput="updateSandboxEstimations()" class="w-full bg-zinc-100 border border-theme rounded-xl px-3 py-2 text-xs font-semibold text-black focus:outline-none"/>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[10px] text-muted uppercase font-bold">Quantity</label>
+                  <input type="number" id="calcQty" value="1" oninput="updateSandboxEstimations()" class="w-full bg-zinc-100 border border-theme rounded-xl px-3 py-2 text-xs font-semibold text-black focus:outline-none"/>
+                </div>
+              </div>
+              <div class="bg-zinc-100 rounded-xl p-4 border border-theme space-y-3">
+                <span class="text-[9px] text-muted uppercase font-black tracking-widest block">Sandbox Calculations</span>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-muted text-[10px]">Total Outflow Cost:</span>
+                    <p id="sandboxTotalCostText" class="font-bold font-mono text-black">0.00</p>
+                  </div>
+                  <div>
+                    <span class="text-muted text-[10px]">Total Gross Cash:</span>
+                    <p id="sandboxTotalRevenueText" class="font-bold font-mono text-black">0.00</p>
+                  </div>
+                </div>
+                <div class="border-t border-theme pt-3 flex justify-between items-center">
+                  <div>
+                    <span class="text-[10px] text-muted font-bold block">Gross Profit</span>
+                    <p id="sandboxProfitText" class="text-lg font-black font-mono">0.00</p>
+                  </div>
+                  <span id="sandboxMarginBadge" class="px-2 py-1 bg-vibrantGreen/10 text-vibrantGreen border border-vibrantGreen/15 rounded-lg text-[10px] font-extrabold font-mono">0.0% Margin</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-2 panel-card border border-theme rounded-[22px] p-5 space-y-4">
+              <div>
+                <h3 class="font-black text-base text-black">Completed Margin Streams</h3>
+                <p class="text-xs text-muted">Real-time profit tracking from cashier checkouts.</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr class="bg-zinc-100 border-b border-theme">
+                      <th class="p-3 text-[10px] font-bold text-muted uppercase whitespace-nowrap">Timestamp</th>
+                      <th class="p-3 text-[10px] font-bold text-muted uppercase whitespace-nowrap">Product Info</th>
+                      <th class="p-3 text-[10px] font-bold text-muted uppercase whitespace-nowrap text-center">Qty Sold</th>
+                      <th class="p-3 text-[10px] font-bold text-muted uppercase whitespace-nowrap">Margin</th>
+                      <th class="p-3 text-[10px] font-bold text-muted uppercase whitespace-nowrap text-right">Realized Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="realizedProfitLogs" class="divide-y divide-theme text-xs text-black">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 6: REPORTS -->
+      <!-- ========================================== -->
+      <div id="tab-reports" class="tab-pane hidden">
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-black">
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-between">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold">Gross Sales Revenue</span>
+              <div class="mt-4"><p id="kpiGrossRevenue" class="text-2xl font-black font-mono text-black">0.00</p><p class="text-[9px] text-muted mt-1">Total checkout value</p></div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-between">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold">Net Profit</span>
+              <div class="mt-4"><p id="kpiNetProfit" class="text-2xl font-black text-vibrantGreen font-mono">0.00</p><p class="text-[9px] text-muted mt-1">Sales minus stock cost</p></div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-between">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold">Average Sales Margin</span>
+              <div class="mt-4"><p id="kpiAverageMargin" class="text-2xl font-black text-current font-mono font-bold text-black">0.0%</p><p class="text-[9px] text-muted mt-1">Overall profitability percentage</p></div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 flex flex-col justify-between">
+              <span class="text-[10px] text-muted uppercase tracking-wider font-extrabold">Low Stock Warnings</span>
+              <div class="mt-4"><p id="kpiLowStockCount" class="text-2xl font-black text-vibrantRed font-mono">0</p><p class="text-[9px] text-muted mt-1">Items running out soon</p></div>
+            </div>
+          </div>
+
+          <div class="panel-card p-4 rounded-[22px] border border-theme flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-muted font-bold">From:</span>
+              <input type="date" id="reportsFilterStart" onchange="renderAnalyticsReports()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+              <span class="text-[11px] text-muted font-bold">To:</span>
+              <input type="date" id="reportsFilterEnd" onchange="renderAnalyticsReports()" class="bg-zinc-100 border border-theme rounded-lg p-1.5 text-xs text-black" />
+              <button onclick="clearDateFilter('reports')" class="p-1 text-muted hover:text-black"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <button onclick="exportViewToPDF('reports', 'Business Reports & KPIs')" class="px-5 py-2.5 bg-black text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center gap-1.5 hover:scale-105 transition-all">
+              <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="panel-card border border-theme rounded-[22px] p-5 space-y-4">
+              <div>
+                <h4 class="font-extrabold text-xs uppercase tracking-wider text-black">Sales by Category</h4>
+                <p class="text-[11px] text-muted">Category share in total revenue.</p>
+              </div>
+              <div id="categoryChartList" class="space-y-4"></div>
+            </div>
+            <div class="panel-card border border-theme rounded-[22px] p-5 space-y-4">
+              <div>
+                <h4 class="font-extrabold text-xs uppercase tracking-wider text-black">Credit Balance health</h4>
+                <p class="text-[11px] text-muted">Outstanding liabilities vs collectibles comparison.</p>
+              </div>
+              <div class="space-y-6">
+                <div class="w-full h-8 bg-zinc-100 rounded-xl overflow-hidden border border-theme flex relative" id="comparativeRiskBar"></div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="bg-vibrantGreen/10 border border-vibrantGreen/20 p-3.5 rounded-xl">
+                    <span class="text-[9px] text-vibrantGreen uppercase font-black block">Receivables</span>
+                    <p id="riskCardReceivables" class="text-base font-black font-mono text-black">0.00</p>
+                  </div>
+                  <div class="bg-vibrantRed/10 border border-vibrantRed/20 p-3.5 rounded-xl">
+                    <span class="text-[9px] text-vibrantRed uppercase font-black block">Payables</span>
+                    <p id="riskCardPayables" class="text-base font-black font-mono text-black">0.00</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODALS SYSTEM -->
+  <!-- ========================================== -->
+  
+  <div id="modalConfirm" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 hidden">
+    <div class="panel-card border border-theme rounded-[24px] p-6 w-full max-w-sm shadow-2xl space-y-4">
+      <div class="flex items-center gap-2 text-vibrantRed"><i data-lucide="alert-triangle" class="w-6 h-6"></i><h4 class="font-extrabold text-sm tracking-wide uppercase text-black" id="confirmTitle">System Action</h4></div>
+      <p id="confirmMessage" class="text-xs font-semibold text-black leading-relaxed"></p>
+      <div class="flex items-center gap-2 pt-2 justify-end">
+        <button id="confirmCancelBtn" class="px-4 py-2 bg-zinc-200 text-black text-xs font-bold rounded-xl hover:bg-zinc-300">Cancel</button>
+        <button id="confirmProceedBtn" class="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-zinc-800">Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalAlert" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 hidden">
+    <div class="panel-card border border-theme rounded-[24px] p-6 w-full max-w-sm shadow-2xl space-y-4">
+      <div class="flex items-center gap-2 text-black"><i data-lucide="info" class="w-5 h-5 text-muted"></i><h4 class="font-extrabold text-sm tracking-wide uppercase" id="alertTitle">Notification</h4></div>
+      <p id="alertMessage" class="text-xs font-semibold text-black leading-relaxed"></p>
+      <div class="flex items-center pt-2 justify-end">
+        <button onclick="closeCustomAlert()" class="px-5 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-zinc-800">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalBarcodeScan" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-w-md shadow-2xl relative space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-black tracking-wide uppercase text-black">Live Scanner</h3>
+        <button onclick="stopBarcodeScan()" class="p-1.5 rounded-lg hover:bg-zinc-200 text-black">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="cameraScanViewport" class="w-full bg-black rounded-2xl overflow-hidden border border-theme flex items-center justify-center" style="min-height: 250px; aspect-ratio: 1/1;"></div>
+      <p class="text-[10px] text-muted text-center leading-relaxed">Place product barcode inside camera frames to scan automatically.</p>
+    </div>
+  </div>
+
+  <div id="modalBusiness" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-w-md shadow-2xl relative space-y-5">
+      <div class="flex justify-between items-center"><h3 class="text-base font-black tracking-wide uppercase text-black">Setup Shop Store</h3><button onclick="closeBusinessModal()" class="p-1.5 rounded-lg hover:bg-zinc-200 text-black"><i data-lucide="x" class="w-5 h-5 text-muted"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Shop / Store Name</label><input type="text" id="modalBusinessName" placeholder="e.g. Asim Retail Store" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-current text-black"/></div>
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Business Type</label><select id="modalBusinessType" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-bold text-black focus:outline-none"><option value="Retail">General Retailer</option><option value="Electronics">Electrical Goods & Accessories</option><option value="Grocery">Supermarket / Grocery</option><option value="Apparel">Apparel & Textiles</option><option value="Hardware">Automotive / Hardware</option></select></div>
+        <button onclick="saveNewBusiness()" class="w-full py-3.5 bg-black text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg">Add Branch</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalCashDesk" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-w-md shadow-2xl relative space-y-5">
+      <div class="flex justify-between items-center">
+        <h3 id="cashModalTitle" class="text-base font-black tracking-wide uppercase text-black">Cash Entry</h3>
+        <button onclick="closeCashModal()" class="p-1.5 rounded-lg hover:bg-zinc-200 text-black">
+          <i data-lucide="x" class="w-5 h-5 text-muted"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <input type="hidden" id="modalCashType" />
+        <div>
+          <label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Amount</label>
+          <input type="number" step="0.01" id="modalCashAmount" placeholder="0.00" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Description / Reason</label>
+          <input type="text" id="modalCashDesc" placeholder="e.g. Shop Rent, Morning Float..." class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none" />
+        </div>
+        <button onclick="saveCashEntry()" class="w-full py-3.5 bg-black text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg">Save Cash Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY MODAL (Updated with Min Price & Alt Names) -->
+  <div id="modalInventory" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-w-md shadow-2xl relative space-y-5">
+      <div class="flex justify-between items-center"><h3 id="modalInvTitle" class="text-base font-black tracking-wide uppercase text-black">New Product</h3><button onclick="closeInventoryModal()" class="p-1.5 rounded-lg hover:bg-zinc-200 text-black"><i data-lucide="x" class="w-5 h-5 text-muted"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Item Name</label><input type="text" id="modalInvName" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"/></div>
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Alternative Names (comma-separated for easy search)</label><input type="text" id="modalInvAltNames" placeholder="e.g. fast charger, type-c wire, iphone cable" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"/></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Barcode / SKU</label><div class="flex gap-1.5"><input type="text" id="modalInvBarcode" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-semibold text-black focus:outline-none"/><button onclick="startBarcodeScan('modalInvBarcode')" class="px-2.5 py-1 bg-zinc-200 rounded-xl text-black"><i data-lucide="scan" class="w-4 h-4"></i></button></div></div>
+          <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Category</label><select id="modalInvCategory" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-bold text-black focus:outline-none"></select></div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <div><label class="block text-[9px] text-muted uppercase font-bold mb-1">Qty</label><input type="number" id="modalInvQty" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-semibold text-black focus:outline-none"/></div>
+          <div><label class="block text-[9px] text-muted uppercase font-bold mb-1">Cost</label><input type="number" step="0.01" id="modalInvCost" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-semibold text-black focus:outline-none"/></div>
+          <div><label class="block text-[9px] text-muted uppercase font-bold mb-1">High Price</label><input type="number" step="0.01" id="modalInvSell" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-semibold text-black focus:outline-none"/></div>
+          <div><label class="block text-[9px] text-muted uppercase font-bold mb-1">Min Price</label><input type="number" step="0.01" id="modalInvMinSell" class="w-full bg-zinc-100 border border-theme rounded-xl p-2.5 text-xs font-semibold text-black focus:outline-none"/></div>
+        </div>
+        <div class="flex justify-end gap-1.5"><button onclick="triggerInlineCategoryCreation()" class="py-2 px-3 bg-zinc-200 border border-theme text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-black"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Add New Category</button></div>
+        <button onclick="saveInventoryItem()" class="w-full py-3.5 bg-black text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg">Commit to Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalCategory" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-sm shadow-2xl relative space-y-5">
+      <div class="flex justify-between items-center"><h3 class="text-base font-black uppercase text-black">Manage Categories</h3><button onclick="closeCategoryModal()" class="p-1.5 rounded-lg text-black"><i data-lucide="x" class="w-5 h-5 text-muted"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Category Name</label><input type="text" id="newCategoryName" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"/></div>
+        <button onclick="saveNewCategory()" class="w-full py-3 bg-black text-white font-black rounded-xl text-xs uppercase tracking-wide">Add Category</button>
+        <hr class="border-theme" />
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-2">Registered Categories</label><div id="modalCategoryList" class="space-y-1.5 max-h-[150px] overflow-y-auto no-scrollbar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalCredit" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="panel-card border border-theme rounded-[32px] p-6 w-full max-w-md shadow-2xl relative space-y-5">
+      <div class="flex justify-between items-center"><h3 class="text-base font-black tracking-wide uppercase text-black">Register Credit Log</h3><button onclick="closeCreditModal()" class="p-1.5 rounded-lg text-black"><i data-lucide="x" class="w-5 h-5 text-muted"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Client / Supplier Name</label><input type="text" id="modalCreditName" list="borrowerNames" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none focus:ring-1 focus:ring-current"/></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Credit Flow Class</label><select id="modalCreditType" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-bold text-black focus:outline-none"><option value="owe_us">Owed to Us (Receivables)</option><option value="we_owe">We Owe (Payables)</option></select></div>
+          <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Debt Value</label><input type="number" step="0.01" id="modalCreditAmount" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"/></div>
+        </div>
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Optional Due Date</label><input type="date" id="modalCreditDueDate" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"/></div>
+        <div><label class="block text-[10px] text-muted uppercase font-bold mb-1.5">Notes Description</label><textarea id="modalCreditDesc" rows="3" class="w-full bg-zinc-100 border border-theme rounded-xl p-3 text-xs font-semibold text-black focus:outline-none"></textarea></div>
+        <button onclick="saveCreditEntry()" class="w-full py-3.5 bg-black text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg">Log Ledger Balance</button>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="borrowerNames"></datalist>
+
+  <div id="customToast" class="fixed bottom-6 right-6 bg-black text-white border border-theme px-5 py-3.5 rounded-[18px] shadow-2xl z-50 flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="w-2.5 h-2.5 rounded-full bg-vibrantGreen animate-ping"></div>
+    <span id="toastMessage" class="text-xs font-black tracking-wide">Operation Completed</span>
+  </div>
+
+  <div id="printArea" class="hidden"></div>
+
+  <!-- ========================================== -->
+  <!-- MAIN JS APPLICATION ARCHITECTURE -->
+  <!-- ========================================== -->
+  <script>
+    let state = {
+      businesses: [],
+      currentBusinessId: '',
+      categories: [],
+      inventory: [],
+      credits: [],
+      sales: [],
+      cashLogs: []
+    };
+
+    let activeTab = 'register';
+    let currentEditingItem = null;
+    let paymentMethod = 'Cash';
+    let cart = [];
+    let html5QrcodeScanner = null;
+    let barcodeTargetInputId = null;
+    let isProcessingScan = false;
+    let sessionScannedCodes = new Set();
+    let onConfirmProceedCallback = null;
+
+    window.onload = function() {
+      loadStateFromStorage();
+      setupClockTrigger();
+      setupSidebarMenuTriggers();
+      setupKeyboardBarcodeScanner();
+      lucide.createIcons();
+
+      if (state.businesses.length === 0) {
+        openBusinessModal();
+      } else {
+        renderGlobalContext();
+      }
+      
+      const todayDate = new Date().toISOString().split('T')[0];
+      const cashFilter = document.getElementById('cashDeskFilterDate');
+      if (cashFilter) cashFilter.value = todayDate;
+    };
+
+    function safePlayBeep() {
+      try {
+        const beep = document.getElementById('scanBeep');
+        if (beep) { beep.currentTime = 0; beep.play().catch(() => {}); }
+      } catch (e) {}
+    }
+
+    let barcodeBuffer = '';
+    let lastKeyTime = Date.now();
+
+    function setupKeyboardBarcodeScanner() {
+      document.addEventListener('keydown', function(e) {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          if (document.activeElement.id === 'registerSearch' || document.activeElement.id === 'inventorySearch' || document.activeElement.id === 'modalInvBarcode') {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const scannedText = document.activeElement.value.trim().replace(/[\r\n]/g, '');
+              if (scannedText) processBarcodeAction(scannedText);
+            }
+          }
+          return;
+        }
+        const currentTime = Date.now();
+        if (currentTime - lastKeyTime > 50) barcodeBuffer = '';
+        lastKeyTime = currentTime;
+
+        if (e.key === 'Enter') {
+          if (barcodeBuffer.length > 2) {
+            e.preventDefault();
+            processBarcodeAction(barcodeBuffer);
+            barcodeBuffer = '';
+          }
+        } else if (e.key.length === 1) {
+          barcodeBuffer += e.key;
+        }
+      });
+    }
+
+    function processBarcodeAction(barcode) {
+      try {
+        barcode = String(barcode).trim().replace(/[\r\n]/g, '');
+        if (!barcode) return;
+
+        const modalInv = document.getElementById('modalInventory');
+        if (modalInv && !modalInv.classList.contains('hidden')) {
+          const barcodeInp = document.getElementById('modalInvBarcode');
+          if (barcodeInp) { barcodeInp.value = barcode; safePlayBeep(); showNotification(`Barcode "${barcode}" captured!`); }
+          return;
+        }
+
+        const product = state.inventory.find(i => String(i.barcode).trim() === barcode && i.businessId === state.currentBusinessId);
+        
+        if (product) {
+          safePlayBeep();
+          if (activeTab === 'register') {
+            addProductToCart(product);
+            const searchInput = document.getElementById('registerSearch');
+            if(searchInput) searchInput.value = ''; 
+            renderRegisterGrid();
+          } else if (activeTab === 'inventory') {
+            const invSearch = document.getElementById('inventorySearch');
+            if(invSearch) invSearch.value = barcode;
+            renderInventoryTable();
+          } else {
+            showNotification(`Scanned "${product.name}" successfully!`);
+          }
+        } else {
+          if (activeTab === 'inventory') {
+            safePlayBeep();
+            const invSearch = document.getElementById('inventorySearch');
+            if (invSearch) invSearch.value = barcode;
+            renderInventoryTable();
+            showNotification(`Barcode ${barcode} not found. Ready to register.`);
+          } else {
+            showCustomAlert(`Product with barcode "${barcode}" not found in your catalog. Please add it to the Stock Vault first.`, "Unknown Barcode");
+          }
+        }
+      } catch (err) { console.error("Scanner Error:", err); }
+    }
+
+    function setupClockTrigger() {
+      function tick() {
+        const d = new Date();
+        const pad = (num) => String(num).padStart(2, '0');
+        const clockEl = document.getElementById('currentSystemTime');
+        if (clockEl) clockEl.innerText = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    function getSystemTimestamp() {
+      const d = new Date();
+      const pad = (num) => String(num).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function saveStateToStorage() {
+      localStorage.setItem('onyxpos_database_v3_premium', JSON.stringify(state));
+      updateBorrowersNamesDatalist();
+    }
+
+    function loadStateFromStorage() {
+      const stored = localStorage.getItem('onyxpos_database_v3_premium');
+      if (stored) {
+        try {
+          state = JSON.parse(stored);
+          state.cashLogs = state.cashLogs || [];
+          state.sales = state.sales || [];
+          state.credits = state.credits || [];
+          state.inventory = state.inventory.map(item => ({
+            ...item,
+            minSellPrice: item.minSellPrice !== undefined ? item.minSellPrice : item.sellPrice,
+            altNames: item.altNames || ''
+          }));
+        } catch (e) { console.error("DB Load Error.", e); }
+      }
+      updateBorrowersNamesDatalist();
+    }
+
+    function updateBorrowersNamesDatalist() {
+      const datalist = document.getElementById('borrowerNames');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      const namesSet = new Set();
+      state.credits.forEach(c => { if (c.name && c.name.trim() !== '') namesSet.add(c.name.trim()); });
+      namesSet.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        datalist.appendChild(option);
+      });
+    }
+
+    function showCustomAlert(msg, title = "System Notification") {
+      document.getElementById('alertTitle').innerText = title;
+      document.getElementById('alertMessage').innerText = msg;
+      document.getElementById('modalAlert').classList.remove('hidden');
+    }
+
+    function closeCustomAlert() {
+      document.getElementById('modalAlert').classList.add('hidden');
+    }
+
+    function showCustomConfirm(msg, onProceed, title = "Verification Required") {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = msg;
+      onConfirmProceedCallback = onProceed;
+      const confirmModal = document.getElementById('modalConfirm');
+      confirmModal.classList.remove('hidden');
+      document.getElementById('confirmCancelBtn').onclick = function() { confirmModal.classList.add('hidden'); onConfirmProceedCallback = null; };
+      document.getElementById('confirmProceedBtn').onclick = function() { confirmModal.classList.add('hidden'); if (onConfirmProceedCallback) onConfirmProceedCallback(); onConfirmProceedCallback = null; };
+    }
+
+    function triggerHardResetConfirmation() {
+      showCustomConfirm("Are you absolutely sure you want to completely wipe the entire POS database? This action is permanent.", function() {
+        localStorage.removeItem('onyxpos_database_v3_premium');
+        window.location.reload();
+      }, "Hard Database Reset");
+    }
+
+    // --- DATABASE BACKUP / RESTORE ---
+    function exportDatabaseFile() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `onyxpos_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showNotification("Database backup downloaded successfully!");
+    }
+
+    function importDatabaseFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && typeof parsed === 'object' && parsed.businesses && parsed.inventory) {
+            state = parsed;
+            saveStateToStorage();
+            renderGlobalContext();
+            showNotification("Database restored successfully!");
+          } else {
+            showCustomAlert("Invalid database backup file format.", "Import Error");
+          }
+        } catch (err) {
+          showCustomAlert("Could not parse file as valid JSON.", "Import Error");
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function startBarcodeScan(inputId) {
+      barcodeTargetInputId = inputId;
+      sessionScannedCodes.clear(); 
+      document.getElementById('modalBarcodeScan').classList.remove('hidden');
+      
+      setTimeout(() => {
+        try {
+          html5QrcodeScanner = new Html5Qrcode("cameraScanViewport");
+          const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
+          const cameraConfig = { facingMode: "environment" };
+          
+          html5QrcodeScanner.start(
+            cameraConfig, config,
+            (decodedText) => {
+              if (isProcessingScan) return;
+              if (barcodeTargetInputId === 'directCart') {
+                if (sessionScannedCodes.has(decodedText)) return; 
+                sessionScannedCodes.add(decodedText);
+                isProcessingScan = true;
+                processBarcodeAction(decodedText);
+                setTimeout(() => { isProcessingScan = false; }, 1000); 
+              } else {
+                isProcessingScan = true;
+                const targetEl = document.getElementById(barcodeTargetInputId);
+                if (targetEl) targetEl.value = decodedText;
+                stopBarcodeScan();
+                processBarcodeAction(decodedText);
+                setTimeout(() => { isProcessingScan = false; }, 1500);
+              }
+            },
+            () => {}
+          ).catch((err) => {
+            html5QrcodeScanner.start({ facingMode: "user" }, config, 
+              (decodedText) => {
+                if (isProcessingScan) return;
+                processBarcodeAction(decodedText);
+                setTimeout(() => { stopBarcodeScan(); }, 500);
+              }, 
+              () => {}
+            ).catch(e => {
+              showCustomAlert("Could not access camera. Please verify your camera permissions.", "Scanner Error");
+              stopBarcodeScan();
+            });
+          });
+        } catch (err) {
+          showCustomAlert("Camera initialization failed.", "Scanner Error");
+          stopBarcodeScan();
+        }
+      }, 300);
+    }
+
+    function stopBarcodeScan() {
+      document.getElementById('modalBarcodeScan').classList.add('hidden');
+      if (html5QrcodeScanner) {
+        const scannerRef = html5QrcodeScanner;
+        html5QrcodeScanner = null;
+        try { scannerRef.stop().then(() => { scannerRef.clear(); }).catch(() => {}); } catch(e) {}
+      }
+    }
+
+    function clearDateFilter(tab) {
+      document.getElementById(`${tab}FilterStart`).value = '';
+      document.getElementById(`${tab}FilterEnd`).value = '';
+      renderActiveTabData();
+    }
+
+    function showNotification(msg) {
+      const toast = document.getElementById('customToast');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'); }, 3000);
+    }
+
+    function setupSidebarMenuTriggers() {
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      const closeBtn = document.getElementById('closeSidebarBtn');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      function openDrawer() { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+      function closeDrawer() { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+      menuBtn.addEventListener('click', openDrawer);
+      closeBtn.addEventListener('click', closeDrawer);
+      overlay.addEventListener('click', closeDrawer);
+    }
+
+    function switchTab(targetTab) {
+      activeTab = targetTab;
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${targetTab}`).classList.remove('hidden');
+
+      document.querySelectorAll('nav mt-auto button, nav button').forEach(btn => {
+        btn.className = "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all text-muted hover:bg-zinc-200 hover:text-black";
+      });
+      const activeNav = document.getElementById(`nav-${targetTab}`);
+      if (activeNav) activeNav.className = "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[16px] text-xs font-bold transition-all bg-black text-white";
+
+      const titlesMap = {
+        'register': 'Cashier Checkout',
+        'cashdesk': 'Daily Cash Desk',
+        'inventory': 'Stock Manager',
+        'credit': 'Customer & Credit Ledger',
+        'calculator': 'Profit Margin Tool',
+        'reports': 'Business Reports'
+      };
+      document.getElementById('activeTabTitle').innerText = titlesMap[targetTab] || 'Cashier';
+
+      renderActiveTabData();
+
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+
+    function renderActiveTabData() {
+      if (activeTab === 'register') { renderRegisterGrid(); renderCartBasket(); }
+      else if (activeTab === 'cashdesk') { renderCashDesk(); }
+      else if (activeTab === 'inventory') { renderInventoryTable(); }
+      else if (activeTab === 'credit') { renderCreditLedger(); }
+      else if (activeTab === 'calculator') { renderCalculatorOptions(); }
+      else if (activeTab === 'reports') { renderAnalyticsReports(); }
+      lucide.createIcons();
+    }
+
+    function renderGlobalContext() {
+      const bizSelect = document.getElementById('businessSelector');
+      bizSelect.innerHTML = '';
+      state.businesses.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id; opt.innerText = `${b.name} (${b.type})`;
+        bizSelect.appendChild(opt);
+      });
+      bizSelect.onchange = function(e) {
+        state.currentBusinessId = e.target.value; cart = []; saveStateToStorage(); renderGlobalContext();
+      };
+      if (!state.currentBusinessId && state.businesses.length > 0) state.currentBusinessId = state.businesses[0].id;
+      const currentBiz = state.businesses.find(b => b.id === state.currentBusinessId);
+      document.getElementById('headerBusinessName').innerText = currentBiz ? currentBiz.name : 'No Store Configured';
+      rebuildCategoryDropdowns();
+      renderActiveTabData();
+    }
+
+    function rebuildCategoryDropdowns() {
+      const registerCat = document.getElementById('registerCategoryFilter');
+      const invCat = document.getElementById('inventoryCategoryFilter');
+      const modalInvCat = document.getElementById('modalInvCategory');
+      const activeRegVal = registerCat ? registerCat.value : 'All';
+      const activeInvVal = invCat ? invCat.value : 'All';
+      const optionsMarkupAll = ['<option value="All">All Categories</option>'];
+      const optionsMarkupDirect = [];
+      state.categories.forEach(cat => {
+        const rawOpt = `<option value="${cat}">${cat}</option>`;
+        optionsMarkupAll.push(rawOpt); optionsMarkupDirect.push(rawOpt);
+      });
+      if (registerCat) { registerCat.innerHTML = optionsMarkupAll.join(''); registerCat.value = activeRegVal; }
+      if (invCat) { invCat.innerHTML = optionsMarkupAll.join(''); invCat.value = activeInvVal; }
+      if (modalInvCat) modalInvCat.innerHTML = optionsMarkupDirect.join('');
+    }
+
+    function openBusinessModal() { document.getElementById('modalBusiness').classList.remove('hidden'); }
+    function closeBusinessModal() {
+      if (state.businesses.length === 0) { showCustomAlert("Please setup at least one branch to use OnyxPOS.", "No Store Installed"); return; }
+      document.getElementById('modalBusiness').classList.add('hidden');
+    }
+    function saveNewBusiness() {
+      const nameInp = document.getElementById('modalBusinessName');
+      const typeInp = document.getElementById('modalBusinessType');
+      if (!nameInp.value.trim()) { showCustomAlert("Please provide a valid Store Name.", "Incomplete Fields"); return; }
+      const newBiz = { id: 'biz_' + Date.now(), name: nameInp.value.trim(), type: typeInp.value };
+      state.businesses.push(newBiz); state.currentBusinessId = newBiz.id;
+      saveStateToStorage(); nameInp.value = '';
+      document.getElementById('modalBusiness').classList.add('hidden'); showNotification("Shop Registered Successfully!"); renderGlobalContext();
+    }
+
+    function openCategoryModal() { document.getElementById('modalCategory').classList.remove('hidden'); renderCategoriesList(); }
+    let defaultCategoryCloseHook = null;
+    function closeCategoryModal() {
+      document.getElementById('modalCategory').classList.add('hidden');
+      if (defaultCategoryCloseHook) { defaultCategoryCloseHook(); defaultCategoryCloseHook = null; }
+    }
+    function renderCategoriesList() {
+      const listContainer = document.getElementById('modalCategoryList');
+      listContainer.innerHTML = '';
+      if (state.categories.length === 0) { listContainer.innerHTML = '<p class="text-[10px] text-muted py-3 text-center">No Categories Active.</p>'; return; }
+      state.categories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center bg-zinc-100 px-3 py-2 rounded-lg border border-theme";
+        div.innerHTML = `<span class="text-xs font-bold text-black">${cat}</span><button onclick="triggerCategoryDeletion('${cat}')" class="text-muted hover:text-vibrantRed transition-colors"><i data-lucide="trash" class="w-4 h-4"></i></button>`;
+        listContainer.appendChild(div);
+      });
+      lucide.createIcons();
+    }
+    function saveNewCategory() {
+      const val = document.getElementById('newCategoryName').value.trim();
+      if (!val) { showCustomAlert("Category name cannot be empty.", "Validation Failed"); return; }
+      if (state.categories.includes(val)) { showCustomAlert("This category already exists.", "Duplicate Entry"); return; }
+      state.categories.push(val); saveStateToStorage(); document.getElementById('newCategoryName').value = '';
+      rebuildCategoryDropdowns(); renderCategoriesList(); showNotification(`Category "${val}" Registered.`);
+    }
+    function triggerCategoryDeletion(cat) {
+      showCustomConfirm(`Are you sure you want to delete category "${cat}"?`, function() {
+        state.categories = state.categories.filter(c => c !== cat);
+        saveStateToStorage(); rebuildCategoryDropdowns(); renderCategoriesList(); showNotification(`Category "${cat}" Deleted.`);
+      }, "Remove Category");
+    }
+    function triggerInlineCategoryCreation() {
+      document.getElementById('modalInventory').classList.add('hidden'); openCategoryModal();
+      defaultCategoryCloseHook = function() { document.getElementById('modalInventory').classList.remove('hidden'); rebuildCategoryDropdowns(); };
+    }
+
+    function openInventoryModal(itemToEdit = false) {
+      if (state.categories.length === 0) { showCustomAlert("No categories configured yet!", "Setup Category First"); openCategoryModal(); return; }
+      document.getElementById('modalInventory').classList.remove('hidden'); rebuildCategoryDropdowns();
+      const titleEl = document.getElementById('modalInvTitle'), 
+            nameInp = document.getElementById('modalInvName'), 
+            altNamesInp = document.getElementById('modalInvAltNames'), 
+            barcodeInp = document.getElementById('modalInvBarcode'), 
+            catInp = document.getElementById('modalInvCategory'), 
+            qtyInp = document.getElementById('modalInvQty'), 
+            costInp = document.getElementById('modalInvCost'), 
+            sellInp = document.getElementById('modalInvSell'),
+            minSellInp = document.getElementById('modalInvMinSell');
+            
+      if (itemToEdit) {
+        currentEditingItem = itemToEdit; 
+        titleEl.innerText = "Edit Stock Product"; 
+        nameInp.value = itemToEdit.name; 
+        altNamesInp.value = itemToEdit.altNames || '';
+        barcodeInp.value = itemToEdit.barcode || ''; 
+        catInp.value = itemToEdit.category; 
+        qtyInp.value = itemToEdit.quantity; 
+        costInp.value = itemToEdit.costPrice; 
+        sellInp.value = itemToEdit.sellPrice;
+        minSellInp.value = itemToEdit.minSellPrice !== undefined ? itemToEdit.minSellPrice : itemToEdit.sellPrice;
+      } else {
+        currentEditingItem = null; 
+        titleEl.innerText = "Add New Product"; 
+        nameInp.value = ''; 
+        altNamesInp.value = '';
+        barcodeInp.value = ''; 
+        qtyInp.value = ''; 
+        costInp.value = ''; 
+        sellInp.value = '';
+        minSellInp.value = '';
+      }
+    }
+    function closeInventoryModal() { document.getElementById('modalInventory').classList.add('hidden'); }
+    
+    function saveInventoryItem() {
+      const name = document.getElementById('modalInvName').value.trim(), 
+            altNames = document.getElementById('modalInvAltNames').value.trim(),
+            barcode = document.getElementById('modalInvBarcode').value.trim(), 
+            category = document.getElementById('modalInvCategory').value, 
+            qty = parseInt(document.getElementById('modalInvQty').value) || 0, 
+            cost = parseFloat(document.getElementById('modalInvCost').value) || 0, 
+            sell = parseFloat(document.getElementById('modalInvSell').value) || 0,
+            minSell = parseFloat(document.getElementById('modalInvMinSell').value) || sell;
+            
+      if (!name) { showCustomAlert("Please provide a product title.", "Validation Warning"); return; }
+      if (cost < 0 || sell < 0 || minSell < 0 || qty < 0) { showCustomAlert("Prices and stock numbers must be positive.", "Validation Warning"); return; }
+      if (minSell > sell) { showCustomAlert("Minimum bargain price cannot be higher than standard selling price.", "Validation Warning"); return; }
+      
+      if (barcode) {
+        const conflict = state.inventory.find(i => i.barcode === barcode && i.businessId === state.currentBusinessId && (!currentEditingItem || i.id !== currentEditingItem.id));
+        if (conflict) { showCustomAlert(`Barcode "${barcode}" is already assigned.`, "Barcode Collision"); return; }
+      }
+      const stamps = getSystemTimestamp();
+      if (currentEditingItem) {
+        state.inventory = state.inventory.map(item => item.id === currentEditingItem.id ? { ...item, name, altNames, barcode, category, quantity: qty, costPrice: cost, sellPrice: sell, minSellPrice: minSell, dateUpdated: stamps } : item);
+        showNotification("Product updated successfully.");
+      } else {
+        state.inventory.push({ id: 'prod_' + Date.now(), businessId: state.currentBusinessId, name, altNames, barcode, category, quantity: qty, costPrice: cost, sellPrice: sell, minSellPrice: minSell, dateAdded: stamps, dateUpdated: stamps });
+        showNotification("Stock item registered successfully.");
+      }
+      saveStateToStorage(); closeInventoryModal(); renderActiveTabData();
+    }
+    
+    function triggerInventoryDeletion(id) {
+      showCustomConfirm("Are you sure you want to remove this product entirely from stock?", function() {
+        state.inventory = state.inventory.filter(i => i.id !== id);
+        saveStateToStorage(); renderActiveTabData(); showNotification("Stock item removed.");
+      }, "Remove Product");
+    }
+
+    function renderInventoryTable() {
+      const tbody = document.getElementById('inventoryTableBody');
+      const search = document.getElementById('inventorySearch').value.toLowerCase();
+      const catFilter = document.getElementById('inventoryCategoryFilter').value;
+      tbody.innerHTML = '';
+      const filtered = state.inventory.filter(item => {
+        const isCurrentBiz = item.businessId === state.currentBusinessId;
+        const matchesSearch = item.name.toLowerCase().includes(search) || 
+                              (item.altNames && item.altNames.toLowerCase().includes(search)) || 
+                              (item.barcode && item.barcode.includes(search));
+        const matchesCat = (catFilter === 'All') || (item.category === catFilter);
+        return isCurrentBiz && matchesSearch && matchesCat;
+      });
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colSpan="7" class="p-8 text-center text-muted"><i data-lucide="archive" class="w-8 h-8 mx-auto mb-2 block"></i>No stock matches found.</td></tr>`;
+        lucide.createIcons(); return;
+      }
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-zinc-100 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 whitespace-nowrap">
+            <div class="font-extrabold text-sm text-black">${item.name}</div>
+            ${item.altNames ? `<div class="text-[10px] text-muted italic">Alt: ${item.altNames}</div>` : ''}
+            <div class="text-[9px] text-muted font-mono flex items-center gap-1 mt-0.5"><i data-lucide="barcode" class="w-3.5 h-3.5"></i> ${item.barcode || 'N/A'}</div>
+          </td>
+          <td class="p-4 whitespace-nowrap"><span class="px-2.5 py-1 bg-zinc-200 text-black rounded-full text-[10px] font-bold border border-theme">${item.category}</span></td>
+          <td class="p-4 whitespace-nowrap text-right font-mono font-semibold text-zinc-600">${item.costPrice.toFixed(2)}</td>
+          <td class="p-4 whitespace-nowrap text-right font-mono font-black text-black">${item.sellPrice.toFixed(2)}</td>
+          <td class="p-4 whitespace-nowrap text-right font-mono font-black text-vibrantGreen">${(item.minSellPrice !== undefined ? item.minSellPrice : item.sellPrice).toFixed(2)}</td>
+          <td class="p-4 whitespace-nowrap text-center"><span class="px-2.5 py-1.5 rounded-xl text-xs font-black font-mono inline-block min-w-[50px] ${item.quantity === 0 ? 'bg-vibrantRed/10 text-vibrantRed' : item.quantity <= 10 ? 'bg-amber-500/10 text-amber-500' : 'bg-vibrantGreen/10 text-vibrantGreen'}">${item.quantity}</span></td>
+          <td class="p-4 whitespace-nowrap text-right">
+            <button onclick='openInventoryModal(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="p-2 text-black hover:bg-zinc-200 rounded-xl transition-colors"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+            <button onclick="triggerInventoryDeletion('${item.id}')" class="p-2 hover:bg-vibrantRed/20 text-muted hover:text-vibrantRed rounded-xl transition-colors"><i data-lucide="trash" class="w-4 h-4"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function handleRegisterSearchInput() {
+      const val = document.getElementById('registerSearch').value.trim();
+      if (val) {
+        const exactMatch = state.inventory.find(i => i.barcode && String(i.barcode).trim() === val && i.businessId === state.currentBusinessId);
+        if (exactMatch) { safePlayBeep(); addProductToCart(exactMatch); document.getElementById('registerSearch').value = ''; renderRegisterGrid(); return; }
+      }
+      renderRegisterGrid();
+    }
+
+    function renderRegisterGrid() {
+      const grid = document.getElementById('registerItemGrid');
+      const search = document.getElementById('registerSearch').value.toLowerCase();
+      const catFilter = document.getElementById('registerCategoryFilter').value;
+      grid.innerHTML = '';
+      const items = state.inventory.filter(item => {
+        const isCurrentBiz = item.businessId === state.currentBusinessId;
+        const matchesSearch = item.name.toLowerCase().includes(search) || 
+                              (item.altNames && item.altNames.toLowerCase().includes(search)) || 
+                              (item.barcode && item.barcode.includes(search));
+        const matchesCat = (catFilter === 'All') || (item.category === catFilter);
+        return isCurrentBiz && matchesSearch && matchesCat;
+      });
+      if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full panel-card border border-dashed border-theme rounded-[22px] p-8 text-center text-muted"><i data-lucide="shopping-bag" class="w-10 h-10 mx-auto text-muted mb-2 block"></i><p class="font-bold text-sm">Register is Empty</p><button onclick="switchTab('inventory')" class="mt-4 px-4 py-2.5 bg-black text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 border border-theme"><i data-lucide="plus" class="w-4 h-4"></i> Add Products</button></div>`;
+        lucide.createIcons(); return;
+      }
+      items.forEach(item => {
+        const isOutOfStock = item.quantity === 0;
+        const isLowStock = item.quantity <= 10 && !isOutOfStock;
+        const card = document.createElement('div');
+        card.className = `panel-card rounded-[8px] sm:rounded-[18px] border p-1 sm:p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer ${isOutOfStock ? 'opacity-40 bg-zinc-100 cursor-not-allowed' : 'hover:border-current hover:shadow-md'}`;
+        if (!isOutOfStock) card.onclick = () => addProductToCart(item);
+        card.innerHTML = `
+          <div class="flex flex-col h-full text-left">
+            <div class="flex justify-between items-center gap-0.5 mb-1 sm:mb-2"><span class="px-1 py-0.2 bg-zinc-100 border border-theme text-black rounded text-[6px] sm:text-[9px] font-bold uppercase tracking-wider truncate max-w-[32px] sm:max-w-[100px]">${item.category}</span>${isOutOfStock ? '<span class="px-1 py-0.2 bg-vibrantRed/15 text-vibrantRed rounded text-[6px] sm:text-[9px] font-black uppercase">0</span>' : isLowStock ? `<span class="px-1 py-0.2 bg-amber-500/15 text-amber-500 rounded text-[6px] sm:text-[9px] font-black">${item.quantity}</span>` : `<span class="px-1 py-0.2 bg-vibrantGreen/15 text-vibrantGreen rounded text-[6px] sm:text-[9px] font-bold">${item.quantity}</span>`}</div>
+            <h3 class="font-bold text-[7px] sm:text-xs line-clamp-2 min-h-[20px] sm:min-h-[34px] text-black leading-tight">${item.name}</h3>
+            ${item.altNames ? `<span class="text-[5px] sm:text-[8px] text-muted italic truncate">Alt: ${item.altNames}</span>` : ''}
+            <div class="mt-auto pt-1 sm:pt-2.5 border-t border-theme flex items-center justify-between gap-0.5">
+              <div><p class="text-[7px] sm:text-xs font-black font-mono text-black">${item.sellPrice.toFixed(2)}</p></div>
+              <div class="p-0.5 sm:p-1.5 bg-zinc-150 border border-theme text-black rounded hover:bg-zinc-200 transition-colors flex items-center justify-center"><i data-lucide="plus" class="w-2 h-2 sm:w-3.5 sm:h-3.5"></i></div>
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function addProductToCart(item) {
+      const existing = cart.find(c => c.id === item.id);
+      if (item.quantity <= 0) { showCustomAlert("This item is currently sold out.", "Unavailable Stock"); return; }
+      const defaultSell = item.sellPrice;
+      const minSell = item.minSellPrice !== undefined ? item.minSellPrice : item.sellPrice;
+      
+      if (existing) {
+        if (existing.qtySelected >= item.quantity) { showCustomAlert(`Cannot process. Quantity would exceed current warehouse limits (${item.quantity} units).`, "Overdraft Limit"); return; }
+        existing.qtySelected++;
+      } else { 
+        cart.push({ ...item, qtySelected: 1, negotiatedPrice: defaultSell, minSellPrice: minSell }); 
+      }
+      showNotification(`"${item.name}" added to Receipt.`); renderCartBasket();
+    }
+
+    function updateCartQty(itemId, change) {
+      const cartItem = cart.find(c => c.id === itemId);
+      const originalItem = state.inventory.find(i => i.id === itemId);
+      if (!cartItem || !originalItem) return;
+      const target = cartItem.qtySelected + change;
+      if (target <= 0) cart = cart.filter(c => c.id !== itemId);
+      else if (target > originalItem.quantity) showCustomAlert(`Insufficient stock. Only ${originalItem.quantity} items available.`, "Insufficient Inventory");
+      else cartItem.qtySelected = target;
+      renderCartBasket();
+    }
+
+    function removeProductFromCart(itemId) {
+      cart = cart.filter(c => c.id !== itemId);
+      renderCartBasket();
+    }
+
+    function updateNegotiatedPrice(itemId, newPriceVal) {
+      const cartItem = cart.find(c => c.id === itemId);
+      if (!cartItem) return;
+      let parsed = parseFloat(newPriceVal);
+      if (isNaN(parsed)) parsed = cartItem.minSellPrice;
+      if (parsed < cartItem.minSellPrice) {
+        parsed = cartItem.minSellPrice;
+        showNotification(`Bargain price adjusted to minimum allowed limit (${parsed.toFixed(2)})`);
+      }
+      cartItem.negotiatedPrice = parsed;
+      renderCartBasket(false); // don't redraw full input focus loss
+    }
+
+    function setPaymentMethod(method) {
+      paymentMethod = method;
+      const methods = ['Cash', 'Card', 'Credit'];
+      methods.forEach(m => {
+        const el = document.getElementById(`btn-pay-${m.toLowerCase()}`);
+        if (el) {
+          el.className = m === method ? "py-2.5 bg-black text-white rounded-xl text-xs font-black border border-transparent transition-all shadow-md" : "py-2.5 bg-zinc-150 text-muted hover:text-black rounded-xl text-xs font-bold border border-theme transition-all";
+        }
+      });
+      const creditDiv = document.getElementById('checkoutCreditDetails');
+      if (creditDiv) creditDiv.classList.toggle('hidden', method !== 'Credit');
+    }
+
+    function renderCartBasket(rebuildMarkup = true) {
+      const container = document.getElementById('cartBasketList');
+      let subtotal = 0, itemsCount = 0;
+      if (cart.length === 0) {
+        container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center p-6 text-muted my-auto"><i data-lucide="receipt" class="w-8 h-8 text-muted mb-2"></i><p class="text-xs font-bold">Ticket is empty</p></div>`;
+        document.getElementById('cartCountBadge').innerText = "0 Items"; document.getElementById('cartTotalText').innerText = "0.00";
+        lucide.createIcons(); return;
+      }
+      
+      if (rebuildMarkup) {
+        container.innerHTML = '';
+        cart.forEach(c => {
+          subtotal += c.negotiatedPrice * c.qtySelected; itemsCount += c.qtySelected;
+          const div = document.createElement('div');
+          div.className = "flex flex-col gap-2 border-b border-theme pb-3";
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex-1 min-w-0"><h4 class="font-bold text-xs truncate text-black">${c.name}</h4></div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="updateCartQty('${c.id}', -1)" class="w-6 h-6 rounded-lg bg-zinc-200 border border-theme flex items-center justify-center text-xs font-bold text-black">-</button>
+                <span class="text-xs font-black w-5 text-center font-mono text-black">${c.qtySelected}</span>
+                <button onclick="updateCartQty('${c.id}', 1)" class="w-6 h-6 rounded-lg bg-zinc-200 border border-theme flex items-center justify-center text-xs font-bold text-black">+</button>
+                <button onclick="removeProductFromCart('${c.id}')" class="text-muted hover:text-vibrantRed ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between bg-zinc-100 p-2 rounded-xl border border-theme">
+              <div class="text-[9px] text-muted">Bargain (${c.minSellPrice.toFixed(2)} - ${c.sellPrice.toFixed(2)}):</div>
+              <input type="number" step="0.01" value="${c.negotiatedPrice.toFixed(2)}" min="${c.minSellPrice}" max="${c.sellPrice}" onchange="updateNegotiatedPrice('${c.id}', this.value)" class="w-24 bg-white border border-theme rounded-lg px-2 py-1 text-right text-xs font-mono font-bold text-black focus:outline-none focus:ring-1 focus:ring-black" />
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      } else {
+        cart.forEach(c => { subtotal += c.negotiatedPrice * c.qtySelected; itemsCount += c.qtySelected; });
+      }
+
+      document.getElementById('cartCountBadge').innerText = `${itemsCount} Items`;
+      document.getElementById('cartTotalText').innerText = subtotal.toFixed(2);
+      lucide.createIcons();
+    }
+
+    function processCheckout() {
+      if (cart.length === 0) { showCustomAlert("Cannot complete checkout on an empty receipt.", "Empty Cart"); return; }
+      
+      let customerName = '';
+      let dueDate = '';
+
+      if (paymentMethod === 'Credit') {
+        customerName = document.getElementById('checkoutCustomerName').value.trim();
+        dueDate = document.getElementById('checkoutDueDate').value;
+        if (!customerName) { showCustomAlert("Please enter customer name for credit/debt sales.", "Customer Name Required"); return; }
+      }
+
+      const timestamp = getSystemTimestamp();
+      let grandTotal = 0;
+
+      cart.forEach(item => {
+        const lineTotal = item.negotiatedPrice * item.qtySelected;
+        grandTotal += lineTotal;
+
+        // Deduct inventory quantity
+        const invItem = state.inventory.find(i => i.id === item.id);
+        if (invItem) {
+          invItem.quantity = Math.max(0, invItem.quantity - item.qtySelected);
+        }
+
+        // Add to Sales Log
+        state.sales.push({
+          id: 'sale_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          businessId: state.currentBusinessId,
+          productId: item.id,
+          productName: item.name,
+          category: item.category,
+          quantity: item.qtySelected,
+          costPrice: item.costPrice,
+          soldPrice: item.negotiatedPrice,
+          paymentMethod: paymentMethod,
+          timestamp: timestamp,
+          customerName: customerName
+        });
+      });
+
+      // Handle Cash Desk & Credit Log integration
+      if (paymentMethod === 'Cash') {
+        state.cashLogs.push({
+          id: 'cash_' + Date.now(),
+          businessId: state.currentBusinessId,
+          timestamp: timestamp,
+          type: 'Sale',
+          amount: grandTotal,
+          description: `POS Sale Receipt (${cart.length} items)`
+        });
+      } else if (paymentMethod === 'Credit') {
+        state.credits.push({
+          id: 'credit_' + Date.now(),
+          businessId: state.currentBusinessId,
+          name: customerName,
+          type: 'owe_us',
+          amount: grandTotal,
+          description: `POS Credit Sale (${cart.length} items)`,
+          dueDate: dueDate,
+          timestamp: timestamp,
+          status: 'pending'
+        });
+      }
+
+      saveStateToStorage();
+      cart = [];
+      showNotification("Transaction completed and registered!");
+      renderActiveTabData();
+    }
+
+    function triggerReceiptPrint() {
+      if (cart.length === 0) { showCustomAlert("No items to generate receipt preview.", "Receipt Empty"); return; }
+      const printArea = document.getElementById('printArea');
+      let subtotal = 0;
+      let itemsListHtml = '';
+
+      cart.forEach(item => {
+        const itemTotal = item.negotiatedPrice * item.qtySelected;
+        subtotal += itemTotal;
+        itemsListHtml += `
+          <tr style="border-bottom: 1px dashed #ccc;">
+            <td style="padding: 4px 0;">${item.name} x${item.qtySelected}</td>
+            <td style="padding: 4px 0; text-align: right;">${itemTotal.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      const currentBiz = state.businesses.find(b => b.id === state.currentBusinessId);
+
+      printArea.innerHTML = `
+        <div style="font-family: monospace; max-width: 300px; margin: auto; padding: 10px; font-size: 12px; color: #000;">
+          <div style="text-align: center; margin-bottom: 10px;">
+            <h2 style="font-size: 16px; margin: 0; font-weight: bold;">${currentBiz ? currentBiz.name : 'OnyxPOS Shop'}</h2>
+            <p style="margin: 2px 0; font-size: 10px;">${getSystemTimestamp()}</p>
+            <p style="margin: 2px 0; font-size: 10px;">Payment: ${paymentMethod}</p>
+          </div>
+          <table style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 10px;">
+            <thead>
+              <tr style="border-bottom: 1px solid #000;">
+                <th style="padding: 4px 0;">Item</th>
+                <th style="padding: 4px 0; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsListHtml}
+            </tbody>
+          </table>
+          <div style="border-top: 1px double #000; padding-top: 5px; text-align: right; font-weight: bold; font-size: 14px;">
+            Total: ${subtotal.toFixed(2)}
+          </div>
+          <div style="text-align: center; margin-top: 15px; font-size: 10px; color: #555;">
+            Thank you for your business!
+          </div>
+        </div>
+      `;
+      window.print();
+    }
+
+    // --- CASH DESK LOGIC ---
+    function openCashModal(type) {
+      document.getElementById('modalCashType').value = type;
+      document.getElementById('cashModalTitle').innerText = `${type} Cash Entry`;
+      document.getElementById('modalCashAmount').value = '';
+      document.getElementById('modalCashDesc').value = '';
+      document.getElementById('modalCashDesk').classList.remove('hidden');
+    }
+
+    function closeCashModal() {
+      document.getElementById('modalCashDesk').classList.add('hidden');
+    }
+
+    function saveCashEntry() {
+      const type = document.getElementById('modalCashType').value;
+      const amount = parseFloat(document.getElementById('modalCashAmount').value) || 0;
+      const desc = document.getElementById('modalCashDesc').value.trim();
+
+      if (amount <= 0) { showCustomAlert("Please specify a valid cash amount.", "Invalid Amount"); return; }
+
+      state.cashLogs.push({
+        id: 'cash_' + Date.now(),
+        businessId: state.currentBusinessId,
+        timestamp: getSystemTimestamp(),
+        type: type,
+        amount: amount,
+        description: desc || `${type} balance update`
+      });
+
+      saveStateToStorage();
+      closeCashModal();
+      renderCashDesk();
+      showNotification(`${type} entry saved.`);
+    }
+
+    function deleteCashEntry(id) {
+      showCustomConfirm("Are you sure you want to remove this cash log record?", function() {
+        state.cashLogs = state.cashLogs.filter(c => c.id !== id);
+        saveStateToStorage();
+        renderCashDesk();
+        showNotification("Cash log record deleted.");
+      }, "Remove Cash Entry");
+    }
+
+    function renderCashDesk() {
+      const tbody = document.getElementById('cashDeskTableBody');
+      const filterDate = document.getElementById('cashDeskFilterDate').value;
+      tbody.innerHTML = '';
+
+      let totalCashIn = 0;
+      let totalCashOut = 0;
+      let drawerBalance = 0;
+
+      const currentBizLogs = state.cashLogs.filter(c => c.businessId === state.currentBusinessId);
+
+      // Compute Overall Balance First
+      currentBizLogs.forEach(log => {
+        if (log.type === 'Opening' || log.type === 'Income' || log.type === 'Sale') {
+          drawerBalance += log.amount;
+        } else if (log.type === 'Expense') {
+          drawerBalance -= log.amount;
+        }
+      });
+
+      // Filtered logs for display & daily stats calculation
+      const filteredLogs = currentBizLogs.filter(log => {
+        if (!filterDate) return true;
+        return log.timestamp.startsWith(filterDate);
+      });
+
+      filteredLogs.forEach(log => {
+        if (log.type === 'Opening' || log.type === 'Income' || log.type === 'Sale') {
+          totalCashIn += log.amount;
+        } else if (log.type === 'Expense') {
+          totalCashOut += log.amount;
+        }
+      });
+
+      document.getElementById('deskDrawerBalance').innerText = drawerBalance.toFixed(2);
+      document.getElementById('deskTotalIn').innerText = totalCashIn.toFixed(2);
+      document.getElementById('deskTotalOut').innerText = totalCashOut.toFixed(2);
+
+      if (filteredLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colSpan="5" class="p-8 text-center text-muted"><i data-lucide="wallet" class="w-8 h-8 mx-auto mb-2 block"></i>No cash drawer activity recorded for this timeline.</td></tr>`;
+        lucide.createIcons(); return;
+      }
+
+      // Sort descending by timestamp
+      filteredLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      filteredLogs.forEach(log => {
+        const isPositive = (log.type === 'Opening' || log.type === 'Income' || log.type === 'Sale');
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-zinc-100 transition-colors";
+        tr.innerHTML = `
+          <td class="p-3 font-mono text-[11px] font-bold text-black whitespace-nowrap">${log.timestamp}</td>
+          <td class="p-3 whitespace-nowrap">
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${log.type === 'Expense' ? 'bg-vibrantRed/10 text-vibrantRed' : log.type === 'Sale' ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-zinc-200 text-black'}">${log.type}</span>
+          </td>
+          <td class="p-3 font-semibold text-black">${log.description || '--'}</td>
+          <td class="p-3 font-mono font-black text-right ${isPositive ? 'text-vibrantGreen' : 'text-vibrantRed'}">${isPositive ? '+' : '-'}${log.amount.toFixed(2)}</td>
+          <td class="p-3 text-right">
+            <button onclick="deleteCashEntry('${log.id}')" class="p-1.5 hover:bg-vibrantRed/20 text-muted hover:text-vibrantRed rounded-lg transition-colors"><i data-lucide="trash" class="w-4 h-4"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+    }
+
+    // --- CREDIT LEDGER LOGIC ---
+    function openCreditModal() {
+      document.getElementById('modalCreditName').value = '';
+      document.getElementById('modalCreditAmount').value = '';
+      document.getElementById('modalCreditDueDate').value = '';
+      document.getElementById('modalCreditDesc').value = '';
+      document.getElementById('modalCredit').classList.remove('hidden');
+    }
+
+    function closeCreditModal() {
+      document.getElementById('modalCredit').classList.add('hidden');
+    }
+
+    function saveCreditEntry() {
+      const name = document.getElementById('modalCreditName').value.trim();
+      const type = document.getElementById('modalCreditType').value;
+      const amount = parseFloat(document.getElementById('modalCreditAmount').value) || 0;
+      const dueDate = document.getElementById('modalCreditDueDate').value;
+      const desc = document.getElementById('modalCreditDesc').value.trim();
+
+      if (!name) { showCustomAlert("Please enter customer or supplier name.", "Missing Name"); return; }
+      if (amount <= 0) { showCustomAlert("Please specify a valid debt amount.", "Invalid Value"); return; }
+
+      state.credits.push({
+        id: 'credit_' + Date.now(),
+        businessId: state.currentBusinessId,
+        name: name,
+        type: type,
+        amount: amount,
+        dueDate: dueDate,
+        description: desc || 'Manual Credit Ledger Entry',
+        timestamp: getSystemTimestamp(),
+        status: 'pending'
+      });
+
+      saveStateToStorage();
+      closeCreditModal();
+      renderCreditLedger();
+      showNotification("Credit log added successfully.");
+    }
+
+    function settleCreditLog(id) {
+      showCustomConfirm("Mark this credit record as settled/paid?", function() {
+        const log = state.credits.find(c => c.id === id);
+        if (log) {
+          log.status = 'settled';
+          // Also optionally record cash flow
+          if (log.type === 'owe_us') {
+            state.cashLogs.push({
+              id: 'cash_' + Date.now(),
+              businessId: state.currentBusinessId,
+              timestamp: getSystemTimestamp(),
+              type: 'Income',
+              amount: log.amount,
+              description: `Credit Payment Received: ${log.name}`
+            });
+          } else {
+            state.cashLogs.push({
+              id: 'cash_' + Date.now(),
+              businessId: state.currentBusinessId,
+              timestamp: getSystemTimestamp(),
+              type: 'Expense',
+              amount: log.amount,
+              description: `Supplier Credit Settled: ${log.name}`
+            });
+          }
+          saveStateToStorage();
+          renderCreditLedger();
+          showNotification("Credit settled and recorded to Cash Desk!");
+        }
+      }, "Settle Debt Entry");
+    }
+
+    function deleteCreditLog(id) {
+      showCustomConfirm("Delete this credit record completely?", function() {
+        state.credits = state.credits.filter(c => c.id !== id);
+        saveStateToStorage();
+        renderCreditLedger();
+        showNotification("Credit record deleted.");
+      }, "Delete Ledger Entry");
+    }
+
+    function renderCreditLedger() {
+      const grid = document.getElementById('groupedCreditsGrid');
+      const search = document.getElementById('creditSearchFilter').value.toLowerCase();
+      const startDate = document.getElementById('creditFilterStart').value;
+      const endDate = document.getElementById('creditFilterEnd').value;
+
+      grid.innerHTML = '';
+
+      let totalPayables = 0;
+      let totalReceivables = 0;
+
+      const filtered = state.credits.filter(c => {
+        const isCurrentBiz = c.businessId === state.currentBusinessId;
+        const matchesSearch = c.name.toLowerCase().includes(search);
+        
+        let matchesDate = true;
+        if (startDate && c.timestamp < startDate) matchesDate = false;
+        if (endDate && c.timestamp > endDate + ' 23:59') matchesDate = false;
+
+        return isCurrentBiz && matchesSearch && matchesDate;
+      });
+
+      // Group by Person/Supplier Name
+      const grouped = {};
+      filtered.forEach(c => {
+        if (!grouped[c.name]) grouped[c.name] = [];
+        grouped[c.name].push(c);
+
+        if (c.status !== 'settled') {
+          if (c.type === 'we_owe') totalPayables += c.amount;
+          if (c.type === 'owe_us') totalReceivables += c.amount;
+        }
+      });
+
+      document.getElementById('totalPayableText').innerText = totalPayables.toFixed(2);
+      document.getElementById('totalReceivableText').innerText = totalReceivables.toFixed(2);
+      
+      const netStanding = totalReceivables - totalPayables;
+      const netEl = document.getElementById('netLiquidityText');
+      netEl.innerText = netStanding.toFixed(2);
+      netEl.className = `text-2xl font-black font-mono ${netStanding >= 0 ? 'text-vibrantGreen' : 'text-vibrantRed'}`;
+
+      if (Object.keys(grouped).length === 0) {
+        grid.innerHTML = `<div class="col-span-full panel-card p-8 text-center text-muted border border-dashed rounded-[22px]"><i data-lucide="credit-card" class="w-8 h-8 mx-auto mb-2 block"></i>No active credit entries found.</div>`;
+        lucide.createIcons(); return;
+      }
+
+      Object.keys(grouped).forEach(personName => {
+        const logs = grouped[personName];
+        let personNet = 0;
+        logs.forEach(l => {
+          if (l.status !== 'settled') {
+            if (l.type === 'owe_us') personNet += l.amount;
+            else personNet -= l.amount;
+          }
+        });
+
+        const card = document.createElement('div');
+        card.className = "panel-card border border-theme rounded-[22px] p-5 space-y-4 shadow-sm";
+        
+        let logsMarkup = '';
+        logs.forEach(l => {
+          const isOweUs = l.type === 'owe_us';
+          const isSettled = l.status === 'settled';
+
+          logsMarkup += `
+            <div class="flex items-center justify-between p-3 rounded-xl ${isSettled ? 'bg-zinc-100 opacity-60' : 'bg-zinc-50 border border-theme'}">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded ${isOweUs ? 'bg-vibrantGreen/10 text-vibrantGreen' : 'bg-vibrantRed/10 text-vibrantRed'}">${isOweUs ? 'Owed To Us' : 'We Owe'}</span>
+                  ${isSettled ? '<span class="text-[9px] font-bold uppercase bg-zinc-200 px-2 py-0.5 rounded">Settled</span>' : ''}
+                </div>
+                <p class="text-xs font-semibold text-black mt-1">${l.description}</p>
+                <p class="text-[10px] text-muted font-mono mt-0.5">${l.timestamp} ${l.dueDate ? `| Due: ${l.dueDate}` : ''}</p>
+              </div>
+              <div class="text-right space-y-1">
+                <p class="text-sm font-black font-mono ${isOweUs ? 'text-vibrantGreen' : 'text-vibrantRed'}">${l.amount.toFixed(2)}</p>
+                <div class="flex items-center gap-1 justify-end">
+                  ${!isSettled ? `<button onclick="settleCreditLog('${l.id}')" class="px-2 py-1 bg-black text-white rounded-lg text-[9px] font-bold">Settle</button>` : ''}
+                  <button onclick="deleteCreditLog('${l.id}')" class="p-1 hover:bg-vibrantRed/20 text-muted hover:text-vibrantRed rounded-lg"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between border-b border-theme pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-black">${personName}</h3>
+              <p class="text-[10px] text-muted">${logs.length} Logged Transactions</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[9px] text-muted uppercase font-bold block">Outstanding Balance</span>
+              <p class="text-base font-black font-mono ${personNet >= 0 ? 'text-vibrantGreen' : 'text-vibrantRed'}">${personNet >= 0 ? '+' : ''}${personNet.toFixed(2)}</p>
+            </div>
+          </div>
+          <div class="space-y-2 max-h-[250px] overflow-y-auto no-scrollbar">
+            ${logsMarkup}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    // --- PROFIT MARGIN CALCULATOR & STREAMS LOGIC ---
+    function renderCalculatorOptions() {
+      const select = document.getElementById('calcVaultImport');
+      select.innerHTML = '<option value="">-- Choose Stock Product --</option>';
+      state.inventory.filter(i => i.businessId === state.currentBusinessId).forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.innerText = `${item.name} (Cost: ${item.costPrice.toFixed(2)} | Sell: ${item.sellPrice.toFixed(2)})`;
+        select.appendChild(opt);
+      });
+      renderRealizedMarginalStreams();
+    }
+
+    function handleCalcTemplateImport() {
+      const selectedId = document.getElementById('calcVaultImport').value;
+      if (!selectedId) return;
+      const item = state.inventory.find(i => i.id === selectedId);
+      if (item) {
+        document.getElementById('calcLabel').value = item.name;
+        document.getElementById('calcCost').value = item.costPrice;
+        document.getElementById('calcSell').value = item.sellPrice;
+        document.getElementById('calcQty').value = 1;
+        updateSandboxEstimations();
+      }
+    }
+
+    function updateSandboxEstimations() {
+      const cost = parseFloat(document.getElementById('calcCost').value) || 0;
+      const sell = parseFloat(document.getElementById('calcSell').value) || 0;
+      const qty = parseInt(document.getElementById('calcQty').value) || 0;
+
+      const totalCost = cost * qty;
+      const totalRevenue = sell * qty;
+      const profit = totalRevenue - totalCost;
+      const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+      document.getElementById('sandboxTotalCostText').innerText = totalCost.toFixed(2);
+      document.getElementById('sandboxTotalRevenueText').innerText = totalRevenue.toFixed(2);
+      
+      const profitEl = document.getElementById('sandboxProfitText');
+      profitEl.innerText = profit.toFixed(2);
+      profitEl.className = `text-lg font-black font-mono ${profit >= 0 ? 'text-vibrantGreen' : 'text-vibrantRed'}`;
+
+      const badgeEl = document.getElementById('sandboxMarginBadge');
+      badgeEl.innerText = `${margin.toFixed(1)}% Margin`;
+      badgeEl.className = `px-2 py-1 border rounded-lg text-[10px] font-extrabold font-mono ${margin >= 0 ? 'bg-vibrantGreen/10 text-vibrantGreen border-vibrantGreen/15' : 'bg-vibrantRed/10 text-vibrantRed border-vibrantRed/15'}`;
+    }
+
+    function renderRealizedMarginalStreams() {
+      const tbody = document.getElementById('realizedProfitLogs');
+      const startDate = document.getElementById('calcFilterStart').value;
+      const endDate = document.getElementById('calcFilterEnd').value;
+
+      tbody.innerHTML = '';
+
+      const filtered = state.sales.filter(s => {
+        const isCurrentBiz = s.businessId === state.currentBusinessId;
+        let matchesDate = true;
+        if (startDate && s.timestamp < startDate) matchesDate = false;
+        if (endDate && s.timestamp > endDate + ' 23:59') matchesDate = false;
+        return isCurrentBiz && matchesDate;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colSpan="5" class="p-8 text-center text-muted"><i data-lucide="trending-up" class="w-8 h-8 mx-auto mb-2 block"></i>No completed sales transactions logged yet.</td></tr>`;
+        lucide.createIcons(); return;
+      }
+
+      filtered.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      filtered.forEach(s => {
+        const totalCost = s.costPrice * s.quantity;
+        const totalRevenue = s.soldPrice * s.quantity;
+        const profit = totalRevenue - totalCost;
+        const marginPct = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-zinc-100 transition-colors";
+        tr.innerHTML = `
+          <td class="p-3 font-mono text-[11px] font-bold text-black whitespace-nowrap">${s.timestamp}</td>
+          <td class="p-3 whitespace-nowrap"><div class="font-bold text-black">${s.productName}</div><div class="text-[9px] text-muted">${s.category} (${s.paymentMethod})</div></td>
+          <td class="p-3 text-center font-mono font-bold text-black">${s.quantity}</td>
+          <td class="p-3 font-mono font-bold ${marginPct >= 0 ? 'text-vibrantGreen' : 'text-vibrantRed'}">${marginPct.toFixed(1)}%</td>
+          <td class="p-3 text-right font-mono font-black ${profit >= 0 ? 'text-vibrantGreen' : 'text-vibrantRed'}">${profit.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+    }
+
+    // --- REPORTS & ANALYTICS ---
+    function renderAnalyticsReports() {
+      const startDate = document.getElementById('reportsFilterStart').value;
+      const endDate = document.getElementById('reportsFilterEnd').value;
+
+      const filteredSales = state.sales.filter(s => {
+        const isCurrentBiz = s.businessId === state.currentBusinessId;
+        let matchesDate = true;
+        if (startDate && s.timestamp < startDate) matchesDate = false;
+        if (endDate && s.timestamp > endDate + ' 23:59') matchesDate = false;
+        return isCurrentBiz && matchesDate;
+      });
+
+      let grossRevenue = 0;
+      let totalCost = 0;
+
+      filteredSales.forEach(s => {
+        grossRevenue += s.soldPrice * s.quantity;
+        totalCost += s.costPrice * s.quantity;
+      });
+
+      const netProfit = grossRevenue - totalCost;
+      const avgMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
+
+      const lowStockCount = state.inventory.filter(i => i.businessId === state.currentBusinessId && i.quantity <= 10).length;
+
+      document.getElementById('kpiGrossRevenue').innerText = grossRevenue.toFixed(2);
+      document.getElementById('kpiNetProfit').innerText = netProfit.toFixed(2);
+      document.getElementById('kpiAverageMargin').innerText = `${avgMargin.toFixed(1)}%`;
+      document.getElementById('kpiLowStockCount').innerText = lowStockCount;
+
+      // Category Breakdown
+      const categoryTotals = {};
+      filteredSales.forEach(s => {
+        categoryTotals[s.category] = (categoryTotals[s.category] || 0) + (s.soldPrice * s.quantity);
+      });
+
+      const chartList = document.getElementById('categoryChartList');
+      chartList.innerHTML = '';
+
+      if (Object.keys(categoryTotals).length === 0) {
+        chartList.innerHTML = `<p class="text-xs text-muted py-4 text-center">No sales revenue recorded for category analysis.</p>`;
+      } else {
+        Object.keys(categoryTotals).forEach(cat => {
+          const val = categoryTotals[cat];
+          const pct = grossRevenue > 0 ? (val / grossRevenue) * 100 : 0;
+
+          const div = document.createElement('div');
+          div.className = "space-y-1.5";
+          div.innerHTML = `
+            <div class="flex justify-between text-xs font-bold text-black">
+              <span>${cat}</span>
+              <span class="font-mono">${val.toFixed(2)} (${pct.toFixed(1)}%)</span>
+            </div>
+            <div class="w-full h-2.5 bg-zinc-100 rounded-full overflow-hidden border border-theme">
+              <div class="h-full bg-black rounded-full" style="width: ${pct}%"></div>
+            </div>
+          `;
+          chartList.appendChild(div);
+        });
+      }
+
+      // Credit Balance Health comparison
+      let receivables = 0, payables = 0;
+      state.credits.filter(c => c.businessId === state.currentBusinessId && c.status !== 'settled').forEach(c => {
+        if (c.type === 'owe_us') receivables += c.amount;
+        if (c.type === 'we_owe') payables += c.amount;
+      });
+
+      document.getElementById('riskCardReceivables').innerText = receivables.toFixed(2);
+      document.getElementById('riskCardPayables').innerText = payables.toFixed(2);
+
+      const totalRisk = receivables + payables;
+      const recPct = totalRisk > 0 ? (receivables / totalRisk) * 100 : 50;
+      const payPct = totalRisk > 0 ? (payables / totalRisk) * 100 : 50;
+
+      const riskBar = document.getElementById('comparativeRiskBar');
+      riskBar.innerHTML = `
+        <div class="h-full bg-vibrantGreen" style="width: ${recPct}%" title="Receivables: ${receivables.toFixed(2)}"></div>
+        <div class="h-full bg-vibrantRed" style="width: ${payPct}%" title="Payables: ${payables.toFixed(2)}"></div>
+      `;
+    }
+
+    // --- PDF EXPORT ENGINE ---
+    function exportViewToPDF(type, title) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const currentBiz = state.businesses.find(b => b.id === state.currentBusinessId);
+        
+        doc.setFontSize(16);
+        doc.text(currentBiz ? currentBiz.name : "OnyxPOS Report", 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Document: ${title}`, 14, 22);
+        doc.text(`Generated: ${getSystemTimestamp()}`, 14, 28);
+
+        if (type === 'cashdesk') {
+          const logs = state.cashLogs.filter(c => c.businessId === state.currentBusinessId);
+          const bodyData = logs.map(l => [l.timestamp, l.type, l.description, l.amount.toFixed(2)]);
+          doc.autoTable({
+            startY: 35,
+            head: [['Time', 'Type', 'Description', 'Amount']],
+            body: bodyData,
+          });
+        } else if (type === 'inventory') {
+          const items = state.inventory.filter(i => i.businessId === state.currentBusinessId);
+          const bodyData = items.map(i => [i.name, i.category, i.costPrice.toFixed(2), i.sellPrice.toFixed(2), i.quantity]);
+          doc.autoTable({
+            startY: 35,
+            head: [['Product Name', 'Category', 'Cost', 'Sell Price', 'Stock']],
+            body: bodyData,
+          });
+        } else if (type === 'credit') {
+          const credits = state.credits.filter(c => c.businessId === state.currentBusinessId);
+          const bodyData = credits.map(c => [c.name, c.type === 'owe_us' ? 'Owed to Us' : 'We Owe', c.amount.toFixed(2), c.status, c.timestamp]);
+          doc.autoTable({
+            startY: 35,
+            head: [['Person/Supplier', 'Type', 'Amount', 'Status', 'Date']],
+            body: bodyData,
+          });
+        } else {
+          doc.text("PDF Summary Export Completed.", 14, 40);
+        }
+
+        doc.save(`${type}_report_${new Date().toISOString().split('T')[0]}.pdf`);
+        showNotification("PDF Export Generated!");
+      } catch (err) {
+        showCustomAlert("PDF Generation Failed: " + err.message, "PDF Error");
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Karobar Smart - Shop & Stock Manager</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter for clean, readable UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <!-- jsPDF & AutoTable for PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Tailwind Configuration for Pill-shaped & Friendly UI -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            primary: '#2563eb',     // Friendly Blue
+            primaryHover: '#1d4ed8',
+            secondary: '#f1f5f9',   // Light gray for backgrounds
+            success: '#10b981',     // Green
+            danger: '#ef4444',      // Red
+            dark: '#0f172a',
+            muted: '#64748b'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --panel-bg: #ffffff;
+      --text-main: #0f172a;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Hide scrollbar for clean UI */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Animations */
+    .fade-in { animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Thermal Printer Friendly CSS */
+    @media print {
+      @page { margin: 0; size: 80mm auto; }
+      body * { visibility: hidden; }
+      #thermalReceipt, #thermalReceipt * { visibility: visible; }
+      #thermalReceipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 80mm; /* Standard thermal receipt width */
+        padding: 5mm;
+        margin: 0;
+        background: white;
+        color: black;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden text-sm">
+
+  <!-- Audio Beep for Scanner -->
+  <audio id="scanBeep" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" preload="auto"></audio>
+
+  <!-- Mobile Header -->
+  <header class="md:hidden flex items-center justify-between p-4 bg-white shadow-sm z-30">
+    <div class="flex items-center gap-2">
+      <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg shadow-md">KS</div>
+      <div>
+        <h1 class="font-extrabold text-lg text-dark">Karobar Smart</h1>
+        <p class="text-[10px] text-muted uppercase tracking-wide">Easy Shop Manager</p>
+      </div>
+    </div>
+    <button onclick="toggleSidebar()" class="p-2 bg-secondary rounded-full text-dark hover:bg-gray-200">
+      <i data-lucide="menu" class="w-6 h-6"></i>
+    </button>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 w-72 bg-white shadow-xl md:shadow-none md:border-r border-gray-200 z-40 transition-transform duration-300 flex flex-col h-full">
+    
+    <!-- Desktop Logo -->
+    <div class="hidden md:flex items-center gap-3 p-6 border-b border-gray-100">
+      <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-extrabold text-xl shadow-lg shadow-primary/30">KS</div>
+      <div>
+        <h1 class="font-extrabold text-xl text-dark tracking-tight">Karobar Smart</h1>
+        <p class="text-xs text-muted font-medium">Business Dashboard</p>
+      </div>
+    </div>
+
+    <!-- Active Business / Branch -->
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <label class="block text-xs font-bold text-muted mb-2 uppercase tracking-wide px-1">Active Store</label>
+      <select id="businessSelector" onchange="switchBusiness()" class="w-full bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-bold text-dark focus:ring-2 focus:ring-primary focus:outline-none appearance-none cursor-pointer shadow-sm">
+        <option value="main">My Main Shop</option>
+      </select>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
+      <button onclick="switchTab('register')" id="nav-register" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all bg-primary text-white shadow-md shadow-primary/20">
+        <i data-lucide="shopping-cart" class="w-5 h-5"></i> Checkout (POS)
+      </button>
+      <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all text-muted hover:bg-secondary hover:text-dark">
+        <i data-lucide="package" class="w-5 h-5"></i> Stock Manager
+      </button>
+      <button onclick="switchTab('credit')" id="nav-credit" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all text-muted hover:bg-secondary hover:text-dark">
+        <i data-lucide="users" class="w-5 h-5"></i> Customers & Credit
+      </button>
+      <button onclick="switchTab('cashdesk')" id="nav-cashdesk" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all text-muted hover:bg-secondary hover:text-dark">
+        <i data-lucide="wallet" class="w-5 h-5"></i> Cash Register
+      </button>
+      <button onclick="switchTab('profits')" id="nav-profits" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all text-muted hover:bg-secondary hover:text-dark">
+        <i data-lucide="trending-up" class="w-5 h-5"></i> Profit Margins
+      </button>
+      <button onclick="switchTab('reports')" id="nav-reports" class="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-sm font-bold transition-all text-muted hover:bg-secondary hover:text-dark">
+        <i data-lucide="pie-chart" class="w-5 h-5"></i> Full Reports
+      </button>
+    </nav>
+
+    <!-- Footer -->
+    <div class="p-4 border-t border-gray-100">
+      <button onclick="hardResetData()" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full text-xs font-bold text-danger bg-red-50 hover:bg-red-100 transition-all">
+        <i data-lucide="trash-2" class="w-4 h-4"></i> Reset Data
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Overlay -->
+  <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-dark/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc]">
+    
+    <!-- Header -->
+    <header class="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between shadow-sm z-10 shrink-0">
+      <h2 id="activeTabTitle" class="text-xl md:text-2xl font-extrabold text-dark tracking-tight">Checkout</h2>
+      <div class="px-4 py-2 bg-secondary rounded-full flex items-center gap-2 text-sm font-bold text-dark border border-gray-200">
+        <i data-lucide="clock" class="w-4 h-4 text-muted"></i>
+        <span id="liveClock">--:--</span>
+      </div>
+    </header>
+
+    <!-- Scrollable Workspace -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-6">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: POS REGISTER -->
+      <!-- ========================================== -->
+      <div id="tab-register" class="tab-content h-full">
+        <div class="flex flex-col xl:flex-row gap-6 h-full">
+          
+          <!-- Left: Product Selection -->
+          <div class="flex-1 flex flex-col min-h-[500px]">
+            <!-- Search & Filter Bar -->
+            <div class="bg-white p-3 rounded-full border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-3 mb-4">
+              <div class="relative flex-1">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted w-5 h-5"></i>
+                <input type="text" id="posSearch" placeholder="Scan Barcode or Search Name (Press Enter to add)" class="w-full pl-12 pr-4 py-3 bg-secondary rounded-full text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+              </div>
+              <button onclick="openScanner('pos')" class="px-5 py-3 bg-dark text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-gray-800 transition-all shrink-0">
+                <i data-lucide="scan" class="w-4 h-4"></i> Scan
+              </button>
+            </div>
+            
+            <!-- Product Grid -->
+            <div class="flex-1 overflow-y-auto pr-2 no-scrollbar">
+              <div id="posGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
+                <!-- Products injected here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Cart / Ticket -->
+          <div class="w-full xl:w-96 bg-white rounded-[32px] border border-gray-200 shadow-xl flex flex-col shrink-0 h-[600px] xl:h-auto overflow-hidden">
+            <div class="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+              <h3 class="font-bold text-lg text-dark flex items-center gap-2">
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-primary"></i> Current Cart
+              </h3>
+              <button onclick="clearCart()" class="text-xs font-bold text-danger hover:underline">Clear</button>
+            </div>
+
+            <!-- Cart Items -->
+            <div id="cartList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-white">
+              <!-- Cart items -->
+            </div>
+
+            <!-- Cart Totals & Checkout -->
+            <div class="p-5 bg-gray-50 border-t border-gray-200 space-y-4">
+              <div class="flex justify-between items-center text-sm font-bold text-muted">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">0.00</span>
+              </div>
+              <div class="flex justify-between items-center text-xl font-extrabold text-dark">
+                <span>Total</span>
+                <span id="cartTotal">0.00</span>
+              </div>
+
+              <!-- Payment Type -->
+              <div class="grid grid-cols-3 gap-2">
+                <button onclick="setPaymentType('Cash')" id="btnPayCash" class="py-2.5 rounded-full text-sm font-bold bg-primary text-white shadow-md transition-all">Cash</button>
+                <button onclick="setPaymentType('Card')" id="btnPayCard" class="py-2.5 rounded-full text-sm font-bold bg-white border border-gray-300 text-muted hover:bg-gray-50 transition-all">Card</button>
+                <button onclick="setPaymentType('Credit')" id="btnPayCredit" class="py-2.5 rounded-full text-sm font-bold bg-white border border-gray-300 text-muted hover:bg-gray-50 transition-all">Credit</button>
+              </div>
+
+              <!-- Credit Details (Hidden unless Credit chosen) -->
+              <div id="creditCustomerDiv" class="hidden space-y-2 fade-in">
+                <input type="text" id="posCustomerName" placeholder="Customer Name *" class="w-full px-4 py-3 rounded-full border border-gray-300 text-sm font-semibold focus:outline-none focus:border-primary">
+              </div>
+
+              <!-- Actions -->
+              <div class="flex gap-2">
+                <button onclick="checkout(true)" class="flex-1 py-3.5 bg-secondary text-dark font-bold text-sm rounded-full hover:bg-gray-200 flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="printer" class="w-4 h-4"></i> Estimate
+                </button>
+                <button onclick="checkout(false)" class="flex-[2] py-3.5 bg-success text-white font-black text-sm rounded-full shadow-lg shadow-success/30 hover:bg-emerald-600 flex items-center justify-center gap-2 transition-all">
+                  <i data-lucide="check-circle" class="w-5 h-5"></i> Complete Sale
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: INVENTORY -->
+      <!-- ========================================== -->
+      <div id="tab-inventory" class="tab-content hidden h-full flex-col">
+        <div class="bg-white p-4 rounded-[32px] shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
+          <div class="flex-1 w-full relative">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted w-5 h-5"></i>
+            <input type="text" id="inventorySearch" oninput="renderInventory()" placeholder="Search Products..." class="w-full pl-12 pr-4 py-3 bg-secondary rounded-full text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50">
+          </div>
+          <div class="flex gap-3 w-full md:w-auto">
+            <button onclick="exportToPDF('inventoryTable', 'Stock_Inventory_Report')" class="flex-1 md:flex-none px-6 py-3 bg-secondary text-dark rounded-full font-bold text-sm hover:bg-gray-200 flex items-center justify-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4"></i> PDF
+            </button>
+            <button onclick="openProductModal()" class="flex-[2] md:flex-none px-6 py-3 bg-primary text-white rounded-full font-bold text-sm shadow-md hover:bg-primaryHover flex items-center justify-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i> Add Product
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-[32px] shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col">
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left border-collapse" id="inventoryTable">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider">Product Info</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider">Category</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider text-right">Cost</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider text-right">Price</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider text-center">Stock</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryBody" class="divide-y divide-gray-100">
+                <!-- Data goes here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: CUSTOMERS & CREDIT -->
+      <!-- ========================================== -->
+      <div id="tab-credit" class="tab-content hidden h-full flex-col">
+        <!-- Credit Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 shrink-0">
+          <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-200 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold text-muted uppercase tracking-wider mb-1">To Collect (Customers owe us)</p>
+              <h3 id="creditToCollect" class="text-3xl font-extrabold text-success">0.00</h3>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-success/10 text-success flex items-center justify-center">
+              <i data-lucide="arrow-down-left" class="w-6 h-6"></i>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-200 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold text-muted uppercase tracking-wider mb-1">To Pay (We owe suppliers)</p>
+              <h3 id="creditToPay" class="text-3xl font-extrabold text-danger">0.00</h3>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center">
+              <i data-lucide="arrow-up-right" class="w-6 h-6"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-[32px] shadow-sm border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
+          <div class="relative w-full sm:w-96">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted w-5 h-5"></i>
+            <input type="text" id="creditSearch" oninput="renderCredit()" placeholder="Search Customer/Supplier..." class="w-full pl-12 pr-4 py-3 bg-secondary rounded-full text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50">
+          </div>
+          <button onclick="openCreditModal()" class="w-full sm:w-auto px-6 py-3 bg-dark text-white rounded-full font-bold text-sm shadow-md hover:bg-gray-800 flex items-center justify-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Ledger Entry
+          </button>
+        </div>
+
+        <div class="bg-white rounded-[32px] shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
+          <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-bold text-sm text-dark">Active Balances</h3>
+            <span class="text-xs text-muted">Click a person to view history</span>
+          </div>
+          <div class="overflow-y-auto flex-1 p-4" id="creditList">
+            <!-- Grouped credit logic injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: CASH DESK -->
+      <!-- ========================================== -->
+      <div id="tab-cashdesk" class="tab-content hidden h-full flex-col">
+        <div class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-200 mb-6 flex flex-col items-center justify-center relative overflow-hidden shrink-0">
+          <div class="absolute -right-10 -bottom-10 opacity-5">
+            <i data-lucide="banknote" class="w-64 h-64"></i>
+          </div>
+          <p class="text-sm font-bold text-muted uppercase tracking-widest mb-2 z-10">Current Drawer Balance</p>
+          <h2 id="cashDrawerBalance" class="text-5xl md:text-6xl font-black text-dark z-10 tracking-tight">0.00</h2>
+        </div>
+
+        <div class="flex flex-wrap gap-4 mb-6 shrink-0">
+          <button onclick="openCashModal('Add')" class="flex-1 py-4 bg-success/10 text-success border border-success/20 rounded-[24px] font-bold flex flex-col items-center justify-center gap-2 hover:bg-success/20 transition-all">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i> Add Income / Opening
+          </button>
+          <button onclick="openCashModal('Remove')" class="flex-1 py-4 bg-danger/10 text-danger border border-danger/20 rounded-[24px] font-bold flex flex-col items-center justify-center gap-2 hover:bg-danger/20 transition-all">
+            <i data-lucide="minus-circle" class="w-6 h-6"></i> Log Expense / Withdrawal
+          </button>
+        </div>
+
+        <div class="bg-white rounded-[32px] shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
+           <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-bold text-sm text-dark">Cash Log History</h3>
+            <button onclick="exportToPDF('cashDeskTable', 'Cash_Drawer_Log')" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+              <i data-lucide="download" class="w-3 h-3"></i> PDF
+            </button>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left" id="cashDeskTable">
+              <thead class="bg-white sticky top-0 border-b border-gray-100">
+                <tr>
+                  <th class="p-4 text-xs font-bold text-muted uppercase">Date & Time</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase">Description</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="cashDeskBody" class="divide-y divide-gray-50">
+                <!-- Cash log data -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 5: PROFIT MARGINS (Grouped) -->
+      <!-- ========================================== -->
+      <div id="tab-profits" class="tab-content hidden h-full flex-col">
+        <div class="bg-dark text-white p-6 rounded-[32px] mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 shadow-lg">
+          <div>
+            <p class="text-xs text-gray-400 font-bold uppercase tracking-wide mb-1">Total Realized Net Profit</p>
+            <h2 id="totalNetProfit" class="text-4xl font-black text-success">0.00</h2>
+          </div>
+          <button onclick="exportToPDF('profitTable', 'Product_Profitability_Report')" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-full text-sm font-bold flex items-center gap-2 transition-all">
+            <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF
+          </button>
+        </div>
+
+        <div class="bg-white rounded-[32px] shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
+          <div class="p-5 bg-gray-50 border-b border-gray-200">
+            <h3 class="font-bold text-sm text-dark">Profitability Grouped by Product</h3>
+            <p class="text-xs text-muted">Displays total items sold and margins accumulated.</p>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left" id="profitTable">
+              <thead class="bg-white sticky top-0 border-b border-gray-100">
+                <tr>
+                  <th class="p-4 text-xs font-bold text-muted uppercase">Product Name</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase text-center">Qty Sold</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase text-center">Avg Margin %</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase text-right">Total Net Profit</th>
+                </tr>
+              </thead>
+              <tbody id="profitBody" class="divide-y divide-gray-50">
+                <!-- Grouped profits data -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 6: REPORTS -->
+      <!-- ========================================== -->
+      <div id="tab-reports" class="tab-content hidden h-full flex-col overflow-y-auto no-scrollbar">
+        
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="font-extrabold text-xl text-dark">Business Overview</h3>
+          <button onclick="window.print()" class="px-5 py-2.5 bg-dark text-white rounded-full font-bold text-xs flex items-center gap-2">
+            <i data-lucide="printer" class="w-4 h-4"></i> Print Dashboard
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white p-6 rounded-[32px] border border-gray-200 shadow-sm text-center">
+            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">Gross Sales Revenue</p>
+            <h3 id="repGross" class="text-3xl font-black text-dark">0.00</h3>
+          </div>
+          <div class="bg-white p-6 rounded-[32px] border border-gray-200 shadow-sm text-center">
+            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">Inventory Valuation</p>
+            <h3 id="repInvValue" class="text-3xl font-black text-primary">0.00</h3>
+          </div>
+          <div class="bg-white p-6 rounded-[32px] border border-gray-200 shadow-sm text-center">
+            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">Total Items Sold</p>
+            <h3 id="repItemsSold" class="text-3xl font-black text-success">0</h3>
+          </div>
+        </div>
+
+        <!-- Latest Transactions History -->
+        <div class="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden mb-6">
+          <div class="p-5 bg-gray-50 border-b border-gray-200">
+            <h3 class="font-bold text-sm text-dark">Recent Checkout Transactions</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left" id="reportsTxTable">
+              <thead class="bg-white">
+                <tr class="border-b border-gray-100">
+                  <th class="p-4 text-xs font-bold text-muted uppercase">ID / Date</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase">Customer</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase">Method</th>
+                  <th class="p-4 text-xs font-bold text-muted uppercase text-right">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody id="reportsTxBody" class="divide-y divide-gray-50">
+                <!-- TX History -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODALS SYSTEM (Friendly & Pill Shaped) -->
+  <!-- ========================================== -->
+
+  <!-- Modal Backdrop Template -->
+  
+  <!-- Add/Edit Product Modal -->
+  <div id="modalProduct" class="fixed inset-0 bg-dark/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden fade-in flex flex-col max-h-[90vh]">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="font-extrabold text-lg text-dark" id="productModalTitle">Add New Product</h3>
+        <button onclick="closeModal('modalProduct')" class="p-2 rounded-full hover:bg-gray-200 text-muted"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 space-y-4 overflow-y-auto flex-1">
+        <input type="hidden" id="prodId">
+        
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Barcode / Code</label>
+          <div class="flex gap-2">
+            <input type="text" id="prodBarcode" placeholder="Scan or type code" class="flex-1 bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+            <button onclick="openScanner('product')" class="px-4 bg-dark text-white rounded-full font-bold shadow-md"><i data-lucide="scan" class="w-5 h-5"></i></button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Product Name *</label>
+          <input type="text" id="prodName" placeholder="e.g. Red T-Shirt" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Cost Price</label>
+            <input type="number" id="prodCost" placeholder="0.00" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Selling Price *</label>
+            <input type="number" id="prodPrice" placeholder="0.00" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Stock Quantity</label>
+          <input type="number" id="prodStock" placeholder="0" value="1" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
+        <button onclick="closeModal('modalProduct')" class="flex-1 py-3.5 bg-white border border-gray-300 text-dark font-bold text-sm rounded-full hover:bg-gray-100 transition-all">Cancel</button>
+        <button onclick="saveProduct()" class="flex-[2] py-3.5 bg-primary text-white font-bold text-sm rounded-full shadow-lg shadow-primary/30 hover:bg-primaryHover transition-all">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Credit / Ledger Modal -->
+  <div id="modalCredit" class="fixed inset-0 bg-dark/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-[32px] w-full max-w-sm shadow-2xl overflow-hidden fade-in">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="font-extrabold text-lg text-dark">Add Ledger Entry</h3>
+        <button onclick="closeModal('modalCredit')" class="p-2 rounded-full hover:bg-gray-200 text-muted"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Person Name *</label>
+          <input type="text" id="credPerson" placeholder="Customer or Supplier Name" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Type</label>
+          <select id="credType" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary focus:outline-none appearance-none cursor-pointer">
+            <option value="Receivable">Customer Owes Us (Receivable)</option>
+            <option value="Payable">We Owe Supplier (Payable)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Amount *</label>
+          <input type="number" id="credAmount" placeholder="0.00" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 bg-gray-50">
+        <button onclick="saveCredit()" class="w-full py-3.5 bg-dark text-white font-bold text-sm rounded-full shadow-lg hover:bg-gray-800 transition-all">Save Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer History Modal -->
+  <div id="modalCustomerHistory" class="fixed inset-0 bg-dark/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden fade-in flex flex-col max-h-[90vh]">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <div>
+          <h3 class="font-extrabold text-lg text-dark" id="historyPersonName">Customer Name</h3>
+          <p class="text-xs text-muted font-bold">Ledger & Purchase History</p>
+        </div>
+        <button onclick="closeModal('modalCustomerHistory')" class="p-2 rounded-full hover:bg-gray-200 text-muted"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 space-y-6">
+        
+        <div>
+          <h4 class="font-bold text-sm uppercase text-muted tracking-wider mb-3">Manual Ledger Entries</h4>
+          <div class="bg-secondary rounded-[24px] p-4 border border-gray-200">
+            <table class="w-full text-left text-sm" id="historyLedgerTable">
+              <thead><tr class="text-muted border-b border-gray-300"><th class="pb-2">Date</th><th class="pb-2">Type</th><th class="pb-2 text-right">Amount</th><th class="pb-2 text-right">Action</th></tr></thead>
+              <tbody id="historyLedgerBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-sm uppercase text-muted tracking-wider mb-3">POS Purchases (If Any)</h4>
+          <div class="bg-secondary rounded-[24px] p-4 border border-gray-200">
+            <table class="w-full text-left text-sm">
+              <thead><tr class="text-muted border-b border-gray-300"><th class="pb-2">Date</th><th class="pb-2">Items</th><th class="pb-2 text-right">Total</th></tr></thead>
+              <tbody id="historyPurchaseBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash Desk Add/Remove Modal -->
+  <div id="modalCash" class="fixed inset-0 bg-dark/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-[32px] w-full max-w-sm shadow-2xl overflow-hidden fade-in">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="font-extrabold text-lg text-dark" id="cashModalTitle">Adjust Cash</h3>
+        <button onclick="closeModal('modalCash')" class="p-2 rounded-full hover:bg-gray-200 text-muted"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="cashType">
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Description</label>
+          <input type="text" id="cashDesc" placeholder="e.g. Morning Opening or Electric Bill" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-muted uppercase mb-1.5 px-2">Amount *</label>
+          <input type="number" id="cashAmount" placeholder="0.00" class="w-full bg-secondary border border-gray-200 rounded-full px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none">
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 bg-gray-50">
+        <button onclick="saveCash()" class="w-full py-3.5 bg-dark text-white font-bold text-sm rounded-full shadow-lg hover:bg-gray-800 transition-all">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barcode Scanner Modal -->
+  <div id="modalScanner" class="fixed inset-0 bg-dark/90 backdrop-blur-md hidden z-[60] flex flex-col items-center justify-center p-4 transition-opacity">
+    <div class="w-full max-w-sm relative">
+      <button onclick="closeScanner()" class="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold"><i data-lucide="x-circle" class="w-6 h-6"></i> Close</button>
+      <div id="reader" class="w-full bg-black rounded-[32px] overflow-hidden shadow-2xl border-4 border-white"></div>
+      <p class="text-white text-center mt-6 font-semibold animate-pulse">Scanning barcode...</p>
+    </div>
+  </div>
+
+  <!-- Alert Modal -->
+  <div id="modalAlert" class="fixed inset-0 bg-dark/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-[32px] w-full max-w-xs shadow-2xl overflow-hidden fade-in p-6 text-center">
+      <div class="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="info" class="w-8 h-8"></i>
+      </div>
+      <h3 class="font-extrabold text-lg text-dark mb-2" id="alertTitle">Notice</h3>
+      <p class="text-sm text-muted font-medium mb-6" id="alertMsg"></p>
+      <button onclick="closeModal('modalAlert')" class="w-full py-3 bg-dark text-white font-bold text-sm rounded-full shadow-lg hover:bg-gray-800 transition-all">OK</button>
+    </div>
+  </div>
+
+  <!-- THERMAL RECEIPT CONTAINER (Hidden on Screen, Visible on Print) -->
+  <div id="thermalReceipt" class="no-print">
+    <div style="text-align: center; margin-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 18px; font-weight: bold;">Karobar Smart Store</h2>
+      <p style="margin: 2px 0; font-size: 12px;">General Retail Branch</p>
+      <p style="margin: 2px 0; font-size: 10px;">Receipt: <span id="printRecNo"></span></p>
+      <p style="margin: 2px 0; font-size: 10px;">Date: <span id="printDate"></span></p>
+    </div>
+    
+    <div style="text-align: center; font-weight: bold; margin-bottom: 5px; font-size: 14px;" id="printTypeLabel">RECEIPT</div>
+    <div style="font-size: 11px; margin-bottom: 5px;" id="printCustomerRow">Customer: <span id="printCustomerName"></span></div>
+
+    <div style="border-top: 1px dashed black; border-bottom: 1px dashed black; padding: 5px 0; margin-bottom: 5px;">
+      <table style="width: 100%; font-size: 11px; text-align: left;">
+        <thead>
+          <tr>
+            <th style="width: 50%;">Item</th>
+            <th style="width: 20%; text-align: center;">Qty</th>
+            <th style="width: 30%; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody id="printItems">
+          <!-- Items injected here -->
+        </tbody>
+      </table>
+    </div>
+
+    <table style="width: 100%; font-size: 12px; font-weight: bold;">
+      <tr>
+        <td style="text-align: left;">Subtotal:</td>
+        <td style="text-align: right;" id="printSub">0.00</td>
+      </tr>
+      <tr>
+        <td style="text-align: left; font-size: 14px; padding-top: 5px;">TOTAL:</td>
+        <td style="text-align: right; font-size: 14px; padding-top: 5px;" id="printTotal">0.00</td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 10px; font-size: 11px;">
+      Paid By: <span id="printMethod"></span>
+    </div>
+
+    <div style="text-align: center; margin-top: 15px; font-size: 10px; border-top: 1px dashed black; padding-top: 10px;">
+      Thank you for your business!<br>
+      Developed by @alfatehcreatives
+    </div>
+  </div>
+
+  <script>
+    // --- Data Models & State ---
+    let db = {
+      inventory: [],
+      transactions: [],
+      credit: [],
+      cashDesk: []
+    };
+    
+    let activeTab = 'register';
+    let cart = [];
+    let paymentMethod = 'Cash';
+    let html5QrcodeScanner = null;
+    let scanTarget = null; // 'pos' or 'product'
+
+    // --- Initialization ---
+    window.onload = () => {
+      lucide.createIcons();
+      loadData();
+      setInterval(updateClock, 1000);
+      updateClock();
+      switchTab('register');
+
+      // Initialize Enter key support for POS Search (like a barcode scanner)
+      document.getElementById('posSearch').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          handlePosEnter(this.value);
+        }
+      });
+    };
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    // --- Data Persistence ---
+    function loadData() {
+      const stored = localStorage.getItem('karobarSmartDB');
+      if (stored) {
+        db = JSON.parse(stored);
+        // Migrations / defaults if needed
+        if(!db.inventory) db.inventory = [];
+        if(!db.transactions) db.transactions = [];
+        if(!db.credit) db.credit = [];
+        if(!db.cashDesk) db.cashDesk = [];
+      }
+    }
+    
+    function saveData() {
+      localStorage.setItem('karobarSmartDB', JSON.stringify(db));
+    }
+
+    function hardResetData() {
+      if(confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
+        localStorage.removeItem('karobarSmartDB');
+        location.reload();
+      }
+    }
+
+    // --- UI Navigation ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabId}`).classList.add('flex');
+      
+      // Update sidebar styling
+      document.querySelectorAll('nav button').forEach(el => {
+        el.classList.remove('bg-primary', 'text-white', 'shadow-md');
+        el.classList.add('text-muted');
+      });
+      document.getElementById(`nav-${tabId}`).classList.add('bg-primary', 'text-white', 'shadow-md');
+      document.getElementById(`nav-${tabId}`).classList.remove('text-muted');
+
+      const titles = {
+        'register': 'Checkout (POS)',
+        'inventory': 'Stock Manager',
+        'credit': 'Customers & Credit',
+        'cashdesk': 'Cash Register',
+        'profits': 'Profit Margins',
+        'reports': 'Business Reports'
+      };
+      document.getElementById('activeTabTitle').innerText = titles[tabId];
+      if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('mobileOverlay').classList.add('hidden');
+
+      // Render specific tab data
+      if(tabId === 'register') renderPosGrid();
+      if(tabId === 'inventory') renderInventory();
+      if(tabId === 'credit') renderCredit();
+      if(tabId === 'cashdesk') renderCashDesk();
+      if(tabId === 'profits') renderProfits();
+      if(tabId === 'reports') renderReports();
+    }
+
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      const ov = document.getElementById('mobileOverlay');
+      if(sb.classList.contains('-translate-x-full')) {
+        sb.classList.remove('-translate-x-full');
+        ov.classList.remove('hidden');
+      } else {
+        sb.classList.add('-translate-x-full');
+        ov.classList.add('hidden');
+      }
+    }
+
+    // --- Alerts & Modals ---
+    function showAlert(title, msg) {
+      document.getElementById('alertTitle').innerText = title;
+      document.getElementById('alertMsg').innerText = msg;
+      document.getElementById('modalAlert').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function playBeep() {
+      const audio = document.getElementById('scanBeep');
+      audio.currentTime = 0;
+      audio.play().catch(e => console.log('Audio blocked by browser.'));
+    }
+
+    // ==========================================
+    // 1. POS REGISTER
+    // ==========================================
+    
+    function handlePosEnter(query) {
+      if(!query) return;
+      query = query.toLowerCase().trim();
+      const item = db.inventory.find(i => (i.barcode && i.barcode.toLowerCase() === query) || i.name.toLowerCase() === query);
+      if(item) {
+        addToCart(item.id);
+        document.getElementById('posSearch').value = ''; // clear input
+        playBeep();
+      } else {
+        showAlert("Not Found", "No product matches this barcode or name.");
+      }
+    }
+
+    function renderPosGrid() {
+      const grid = document.getElementById('posGrid');
+      const search = document.getElementById('posSearch').value.toLowerCase();
+      grid.innerHTML = '';
+      
+      const filtered = db.inventory.filter(i => i.name.toLowerCase().includes(search) || (i.barcode && i.barcode.toLowerCase().includes(search)));
+      
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-4 rounded-[24px] border border-gray-200 shadow-sm cursor-pointer hover:border-primary transition-all flex flex-col justify-between h-32 active:scale-95";
+        card.onclick = () => addToCart(item.id);
+        card.innerHTML = `
+          <div>
+            <h4 class="font-bold text-sm text-dark leading-tight line-clamp-2">${item.name}</h4>
+            <span class="text-[10px] text-muted font-bold block mt-1">Stock: ${item.stock}</span>
+          </div>
+          <div class="text-primary font-black text-lg">Rs ${Number(item.price).toFixed(2)}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('posSearch').addEventListener('input', renderPosGrid);
+
+    function addToCart(id) {
+      const item = db.inventory.find(i => i.id === id);
+      if (!item) return;
+      if (item.stock <= 0) {
+        showAlert("Out of Stock", `${item.name} has 0 stock remaining!`);
+        return;
+      }
+      
+      const existing = cart.find(c => c.id === id);
+      if (existing) {
+        if(existing.qty >= item.stock) {
+           showAlert("Stock Limit", `Cannot add more. Only ${item.stock} available.`);
+           return;
+        }
+        existing.qty++;
+      } else {
+        cart.push({ ...item, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function updateCartQty(id, delta) {
+      const cItem = cart.find(c => c.id === id);
+      const dbItem = db.inventory.find(i => i.id === id);
+      if(cItem) {
+        cItem.qty += delta;
+        if(cItem.qty > dbItem.stock) cItem.qty = dbItem.stock;
+        if(cItem.qty <= 0) cart = cart.filter(c => c.id !== id);
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const list = document.getElementById('cartList');
+      list.innerHTML = '';
+      let sub = 0;
+
+      if(cart.length === 0) {
+        list.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-muted opacity-50"><i data-lucide="shopping-cart" class="w-12 h-12 mb-2"></i><p class="text-xs font-bold">Cart is empty</p></div>`;
+      }
+
+      cart.forEach(item => {
+        const total = item.price * item.qty;
+        sub += total;
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-3 bg-secondary rounded-[20px] border border-gray-100";
+        div.innerHTML = `
+          <div class="flex-1 pr-2">
+            <h5 class="text-xs font-bold text-dark truncate w-32">${item.name}</h5>
+            <div class="text-[10px] text-muted">Rs ${item.price} x ${item.qty}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="updateCartQty('${item.id}', -1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-sm text-dark font-bold">-</button>
+            <span class="text-xs font-black w-4 text-center">${item.qty}</span>
+            <button onclick="updateCartQty('${item.id}', 1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-sm text-dark font-bold">+</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      document.getElementById('cartSubtotal').innerText = sub.toFixed(2);
+      document.getElementById('cartTotal').innerText = sub.toFixed(2);
+      lucide.createIcons();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function setPaymentType(type) {
+      paymentMethod = type;
+      document.getElementById('btnPayCash').className = "py-2.5 rounded-full text-sm font-bold bg-white border border-gray-300 text-muted hover:bg-gray-50 transition-all";
+      document.getElementById('btnPayCard').className = "py-2.5 rounded-full text-sm font-bold bg-white border border-gray-300 text-muted hover:bg-gray-50 transition-all";
+      document.getElementById('btnPayCredit').className = "py-2.5 rounded-full text-sm font-bold bg-white border border-gray-300 text-muted hover:bg-gray-50 transition-all";
+      
+      document.getElementById(`btnPay${type}`).className = "py-2.5 rounded-full text-sm font-bold bg-primary text-white shadow-md transition-all";
+      
+      const cd = document.getElementById('creditCustomerDiv');
+      if(type === 'Credit') {
+        cd.classList.remove('hidden');
+      } else {
+        cd.classList.add('hidden');
+      }
+    }
+
+    function checkout(isDraft = false) {
+      if (cart.length === 0) return showAlert("Error", "Cart is empty.");
+      
+      const customerName = document.getElementById('posCustomerName').value.trim();
+      if(paymentMethod === 'Credit' && !customerName && !isDraft) {
+         return showAlert("Required", "Please enter customer name for Credit sale.");
+      }
+
+      const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      const costTotal = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+      const profit = total - costTotal;
+
+      const tx = {
+        id: 'INV-' + Date.now().toString().slice(-6),
+        date: new Date().toISOString(),
+        items: [...cart],
+        total: total,
+        profit: profit,
+        method: paymentMethod,
+        customerName: customerName || "Walk-in",
+        isCredit: paymentMethod === 'Credit'
+      };
+
+      // Generate Print HTML
+      buildReceiptHTML(tx, isDraft);
+      
+      if(!isDraft) {
+        // Finalize Sale
+        db.transactions.push(tx);
+        
+        // Deduct Inventory
+        cart.forEach(cItem => {
+          let dbItem = db.inventory.find(i => i.id === cItem.id);
+          if(dbItem) dbItem.stock -= cItem.qty;
+        });
+
+        // Add to Cash Desk or Credit Ledger
+        if(paymentMethod === 'Cash') {
+          db.cashDesk.push({ id: Date.now(), date: tx.date, type: 'Income', amount: total, desc: `Sale ${tx.id}` });
+        } else if (paymentMethod === 'Credit') {
+          db.credit.push({
+            id: Date.now(), date: tx.date, person: tx.customerName, type: 'Receivable', amount: total, desc: `Credit Sale ${tx.id}`
+          });
+        }
+        
+        saveData();
+        clearCart();
+        document.getElementById('posCustomerName').value = '';
+        renderPosGrid(); // Refresh stock
+      }
+
+      // Trigger Print
+      window.print();
+    }
+
+    function buildReceiptHTML(tx, isDraft) {
+      document.getElementById('printRecNo').innerText = tx.id;
+      document.getElementById('printDate').innerText = new Date(tx.date).toLocaleString();
+      document.getElementById('printTypeLabel').innerText = isDraft ? "ESTIMATE / DRAFT" : "TAX INVOICE";
+      document.getElementById('printCustomerName').innerText = tx.customerName;
+      document.getElementById('printCustomerRow').style.display = tx.customerName ? "block" : "none";
+      
+      const tbody = document.getElementById('printItems');
+      tbody.innerHTML = '';
+      tx.items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td style="text-align:center;">${item.qty}</td>
+          <td style="text-align:right;">${(item.price * item.qty).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('printSub').innerText = tx.total.toFixed(2);
+      document.getElementById('printTotal').innerText = tx.total.toFixed(2);
+      document.getElementById('printMethod').innerText = tx.method;
+    }
+
+    // ==========================================
+    // 2. INVENTORY
+    // ==========================================
+    function renderInventory() {
+      const search = document.getElementById('inventorySearch').value.toLowerCase();
+      const tbody = document.getElementById('inventoryBody');
+      tbody.innerHTML = '';
+
+      db.inventory.filter(i => i.name.toLowerCase().includes(search) || (i.barcode && i.barcode.toLowerCase().includes(search)))
+        .forEach(item => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-gray-50 transition-colors";
+          tr.innerHTML = `
+            <td class="p-4">
+              <div class="font-bold text-dark">${item.name}</div>
+              <div class="text-[10px] text-muted font-mono">${item.barcode || 'N/A'}</div>
+            </td>
+            <td class="p-4 text-xs font-semibold text-muted">General</td>
+            <td class="p-4 text-xs font-semibold text-dark text-right">${Number(item.cost).toFixed(2)}</td>
+            <td class="p-4 text-xs font-bold text-primary text-right">${Number(item.price).toFixed(2)}</td>
+            <td class="p-4 text-center">
+              <span class="inline-block px-3 py-1 rounded-full text-xs font-black ${item.stock > 5 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${item.stock}</span>
+            </td>
+            <td class="p-4 text-right space-x-2">
+               <button onclick="editProduct('${item.id}')" class="p-2 bg-gray-100 text-dark rounded-full hover:bg-gray-200"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+               <button onclick="deleteProduct('${item.id}')" class="p-2 bg-red-50 text-danger rounded-full hover:bg-red-100"><i data-lucide="trash" class="w-4 h-4"></i></button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      lucide.createIcons();
+    }
+
+    function openProductModal() {
+      document.getElementById('prodId').value = '';
+      document.getElementById('prodBarcode').value = '';
+      document.getElementById('prodName').value = '';
+      document.getElementById('prodCost').value = '';
+      document.getElementById('prodPrice').value = '';
+      document.getElementById('prodStock').value = '1';
+      document.getElementById('productModalTitle').innerText = "Add New Product";
+      document.getElementById('modalProduct').classList.remove('hidden');
+    }
+
+    function editProduct(id) {
+      const item = db.inventory.find(i => i.id === id);
+      if(!item) return;
+      document.getElementById('prodId').value = item.id;
+      document.getElementById('prodBarcode').value = item.barcode || '';
+      document.getElementById('prodName').value = item.name;
+      document.getElementById('prodCost').value = item.cost;
+      document.getElementById('prodPrice').value = item.price;
+      document.getElementById('prodStock').value = item.stock;
+      document.getElementById('productModalTitle').innerText = "Edit Product";
+      document.getElementById('modalProduct').classList.remove('hidden');
+    }
+
+    function saveProduct() {
+      const id = document.getElementById('prodId').value;
+      const data = {
+        barcode: document.getElementById('prodBarcode').value,
+        name: document.getElementById('prodName').value,
+        cost: parseFloat(document.getElementById('prodCost').value) || 0,
+        price: parseFloat(document.getElementById('prodPrice').value) || 0,
+        stock: parseInt(document.getElementById('prodStock').value) || 0
+      };
+
+      if(!data.name || data.price <= 0) return showAlert("Error", "Name and Price are required.");
+
+      if (id) {
+        const idx = db.inventory.findIndex(i => i.id === id);
+        db.inventory[idx] = { ...db.inventory[idx], ...data };
+      } else {
+        db.inventory.push({ id: 'P-' + Date.now(), ...data });
+      }
+      
+      saveData();
+      closeModal('modalProduct');
+      renderInventory();
+      renderPosGrid(); // Refresh POS grid just in case
+    }
+
+    function deleteProduct(id) {
+      if(confirm("Delete this product permanently?")) {
+        db.inventory = db.inventory.filter(i => i.id !== id);
+        saveData();
+        renderInventory();
+      }
+    }
+
+    // ==========================================
+    // 3. CREDIT LEDGER & HISTORY
+    // ==========================================
+    function renderCredit() {
+      const search = document.getElementById('creditSearch').value.toLowerCase();
+      const list = document.getElementById('creditList');
+      list.innerHTML = '';
+      
+      let totCollect = 0;
+      let totPay = 0;
+
+      // Group by person
+      const grouped = {};
+      db.credit.forEach(c => {
+        if(!grouped[c.person]) grouped[c.person] = 0;
+        if(c.type === 'Receivable') { grouped[c.person] += c.amount; totCollect += c.amount; }
+        else { grouped[c.person] -= c.amount; totPay += c.amount; }
+      });
+
+      document.getElementById('creditToCollect').innerText = totCollect.toFixed(2);
+      document.getElementById('creditToPay').innerText = totPay.toFixed(2);
+
+      Object.keys(grouped).filter(p => p.toLowerCase().includes(search)).forEach(person => {
+        const bal = grouped[person];
+        if (bal === 0) return; // Hide settled
+        const isRec = bal > 0;
+        const color = isRec ? 'text-success bg-success/10' : 'text-danger bg-danger/10';
+        const label = isRec ? 'Owes Us' : 'We Owe';
+
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-4 bg-white border border-gray-100 rounded-[24px] shadow-sm mb-3 cursor-pointer hover:border-primary transition-all";
+        div.onclick = () => showCustomerHistory(person);
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-bold text-dark">${person.charAt(0).toUpperCase()}</div>
+            <h4 class="font-bold text-sm text-dark">${person}</h4>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] font-bold text-muted uppercase">${label}</span>
+            <div class="text-lg font-black ${isRec ? 'text-success' : 'text-danger'}">${Math.abs(bal).toFixed(2)}</div>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function openCreditModal() {
+      document.getElementById('credPerson').value = '';
+      document.getElementById('credAmount').value = '';
+      document.getElementById('modalCredit').classList.remove('hidden');
+    }
+
+    function saveCredit() {
+      const person = document.getElementById('credPerson').value.trim();
+      const type = document.getElementById('credType').value;
+      const amount = parseFloat(document.getElementById('credAmount').value);
+
+      if(!person || !amount || amount <= 0) return showAlert("Error", "Valid Name and Amount required.");
+
+      db.credit.push({
+        id: Date.now(),
+        date: new Date().toISOString(),
+        person: person,
+        type: type,
+        amount: amount,
+        desc: 'Manual Entry'
+      });
+
+      saveData();
+      closeModal('modalCredit');
+      renderCredit();
+    }
+
+    function showCustomerHistory(person) {
+      document.getElementById('historyPersonName').innerText = person;
+      
+      // Render Ledgers
+      const ledgers = db.credit.filter(c => c.person === person).sort((a,b) => new Date(b.date) - new Date(a.date));
+      const tbody = document.getElementById('historyLedgerBody');
+      tbody.innerHTML = '';
+      ledgers.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-gray-100 last:border-0";
+        tr.innerHTML = `
+          <td class="py-2 text-dark font-medium">${new Date(l.date).toLocaleDateString()}</td>
+          <td class="py-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${l.type === 'Receivable' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}">${l.type}</span></td>
+          <td class="py-2 text-right font-mono font-bold">${l.amount.toFixed(2)}</td>
+          <td class="py-2 text-right"><button onclick="deleteCredit(${l.id})" class="text-danger hover:underline text-[10px]">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Render Purchases
+      const purchases = db.transactions.filter(t => t.customerName === person).sort((a,b) => new Date(b.date) - new Date(a.date));
+      const ptbody = document.getElementById('historyPurchaseBody');
+      ptbody.innerHTML = '';
+      purchases.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-gray-100 last:border-0";
+        const itemsList = p.items.map(i => `${i.name} (${i.qty})`).join(', ');
+        tr.innerHTML = `
+          <td class="py-2 text-dark font-medium">${new Date(p.date).toLocaleDateString()}</td>
+          <td class="py-2 text-muted text-xs truncate max-w-[150px]">${itemsList}</td>
+          <td class="py-2 text-right font-mono font-bold text-dark">${p.total.toFixed(2)}</td>
+        `;
+        ptbody.appendChild(tr);
+      });
+
+      document.getElementById('modalCustomerHistory').classList.remove('hidden');
+    }
+
+    function deleteCredit(id) {
+       if(confirm("Remove this entry?")) {
+         db.credit = db.credit.filter(c => c.id !== id);
+         saveData();
+         closeModal('modalCustomerHistory');
+         renderCredit();
+       }
+    }
+
+    // ==========================================
+    // 4. CASH DESK
+    // ==========================================
+    function renderCashDesk() {
+      let balance = 0;
+      const tbody = document.getElementById('cashDeskBody');
+      tbody.innerHTML = '';
+
+      db.cashDesk.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(c => {
+        if(c.type === 'Income') balance += c.amount;
+        else balance -= c.amount;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 text-xs text-dark font-medium">${new Date(c.date).toLocaleString()}</td>
+          <td class="p-4 text-xs text-muted">${c.desc}</td>
+          <td class="p-4 text-sm font-bold text-right ${c.type === 'Income' ? 'text-success' : 'text-danger'}">
+            ${c.type === 'Income' ? '+' : '-'}${c.amount.toFixed(2)}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('cashDrawerBalance').innerText = balance.toFixed(2);
+    }
+
+    function openCashModal(type) {
+      document.getElementById('cashType').value = type;
+      document.getElementById('cashDesc').value = '';
+      document.getElementById('cashAmount').value = '';
+      document.getElementById('cashModalTitle').innerText = type === 'Add' ? 'Add Income' : 'Log Expense';
+      document.getElementById('modalCash').classList.remove('hidden');
+    }
+
+    function saveCash() {
+      const type = document.getElementById('cashType').value === 'Add' ? 'Income' : 'Expense';
+      const desc = document.getElementById('cashDesc').value || (type === 'Income' ? 'Manual Addition' : 'Manual Expense');
+      const amount = parseFloat(document.getElementById('cashAmount').value);
+
+      if(!amount || amount <= 0) return showAlert("Error", "Valid amount required.");
+
+      db.cashDesk.push({
+        id: Date.now(), date: new Date().toISOString(), type: type, amount: amount, desc: desc
+      });
+
+      saveData();
+      closeModal('modalCash');
+      renderCashDesk();
+    }
+
+    // ==========================================
+    // 5. PROFIT MARGINS (Grouped)
+    // ==========================================
+    function renderProfits() {
+      let totalNet = 0;
+      const productStats = {}; // { prodId: { name, qtySold, totalMargin, totalNet } }
+
+      // Aggregate data
+      db.transactions.forEach(tx => {
+        totalNet += tx.profit;
+        tx.items.forEach(item => {
+           if(!productStats[item.id]) {
+             productStats[item.id] = { name: item.name, qty: 0, costSum: 0, revenue: 0 };
+           }
+           productStats[item.id].qty += item.qty;
+           productStats[item.id].costSum += (item.cost * item.qty);
+           productStats[item.id].revenue += (item.price * item.qty);
+        });
+      });
+
+      document.getElementById('totalNetProfit').innerText = totalNet.toFixed(2);
+
+      const tbody = document.getElementById('profitBody');
+      tbody.innerHTML = '';
+      
+      Object.values(productStats).forEach(stat => {
+        const net = stat.revenue - stat.costSum;
+        const avgMargin = stat.revenue > 0 ? ((net / stat.revenue) * 100).toFixed(1) : 0;
+        
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 font-bold text-dark text-xs">${stat.name}</td>
+          <td class="p-4 text-center font-mono text-xs">${stat.qty}</td>
+          <td class="p-4 text-center font-mono text-xs font-bold text-primary">${avgMargin}%</td>
+          <td class="p-4 text-right font-mono font-black text-success">${net.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // 6. REPORTS
+    // ==========================================
+    function renderReports() {
+      const gross = db.transactions.reduce((s,t) => s + t.total, 0);
+      const itemsSold = db.transactions.reduce((s,t) => s + t.items.reduce((s2,i)=>s2+i.qty,0), 0);
+      const invValue = db.inventory.reduce((s,i) => s + (i.cost * i.stock), 0);
+
+      document.getElementById('repGross').innerText = gross.toFixed(2);
+      document.getElementById('repItemsSold').innerText = itemsSold;
+      document.getElementById('repInvValue').innerText = invValue.toFixed(2);
+
+      const tbody = document.getElementById('reportsTxBody');
+      tbody.innerHTML = '';
+      db.transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 50).forEach(tx => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-4 text-xs">
+            <span class="font-bold text-dark block">${tx.id}</span>
+            <span class="text-[10px] text-muted">${new Date(tx.date).toLocaleDateString()}</span>
+          </td>
+          <td class="p-4 text-xs font-semibold text-dark">${tx.customerName}</td>
+          <td class="p-4 text-xs font-bold text-muted">${tx.method}</td>
+          <td class="p-4 text-xs font-black text-right text-dark">${tx.total.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // HTML5 QR / Barcode Scanner
+    // ==========================================
+    function openScanner(target) {
+      scanTarget = target;
+      document.getElementById('modalScanner').classList.remove('hidden');
+      if(!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+      }
+      
+      html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: {width: 250, height: 250} },
+        (decodedText, decodedResult) => {
+          playBeep();
+          closeScanner();
+          if(scanTarget === 'pos') {
+            document.getElementById('posSearch').value = decodedText;
+            handlePosEnter(decodedText);
+          } else if(scanTarget === 'product') {
+            document.getElementById('prodBarcode').value = decodedText;
+          }
+        },
+        (errorMessage) => { /* ignore */ }
+      ).catch((err) => { showAlert("Camera Error", "Could not start camera."); });
+    }
+
+    function closeScanner() {
+      document.getElementById('modalScanner').classList.add('hidden');
+      if(html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(()=> { html5QrcodeScanner.clear(); }).catch(e=>console.log(e));
+      }
+    }
+
+    // ==========================================
+    // PDF GENERATION (jsPDF & AutoTable)
+    // ==========================================
+    function exportToPDF(tableId, title) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text("Karobar Smart - " + title.replace(/_/g, ' '), 14, 20);
+        doc.setFontSize(10);
+        doc.text("Generated on: " + new Date().toLocaleString(), 14, 27);
+        
+        doc.autoTable({
+          html: '#' + tableId,
+          startY: 35,
+          theme: 'grid',
+          styles: { fontSize: 8, cellPadding: 3 },
+          headStyles: { fillColor: [37, 99, 235] } // Primary blue
+        });
+        
+        doc.save(`${title}_${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (e) {
+        console.error(e);
+        showAlert("PDF Error", "Could not generate PDF. Check console.");
+      }
+    }
+
+  </script>
+</body>
+</html>
