@@ -3,7 +3,7 @@
   "short_name": "AccessoryPOS",
   "description": "Premium POS",
   "start_url": "/index.html",
-  "scope": "./",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
