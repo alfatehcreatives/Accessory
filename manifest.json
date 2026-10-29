@@ -1,9 +1,9 @@
 {
-  "name": "KarobarSmart POS",
-  "short_name": "KarobarSmart",
+  "name": "Accessory POS",
+  "short_name": "AccessoryPOS",
   "description": "Premium POS",
-  "start_url": "/karobarsmart",
-  "scope": "/karobarsmart",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
